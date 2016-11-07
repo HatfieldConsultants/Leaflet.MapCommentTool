@@ -1,0 +1,11 @@
+{
+  "name": "leaflet-map-comment-tool",
+  "description": "Leaflet.MapCommentTool",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {},
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^1.20.1"
+  }
+}
