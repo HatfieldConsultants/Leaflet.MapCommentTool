@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Mocha Tests</title>
+    <title>Map Comment Tool</title>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.1/dist/leaflet.css" />
     <link rel="stylesheet" href="mapCommentTool.css">
@@ -9,31 +9,14 @@
   </head>
   <body>
     <div id="map"></div>
-    <div id="mocha"></div>
     
     <script src="mapConfig.js"></script>
 
-    <script src="node_modules/mocha/mocha.js"></script>
-    <script src="node_modules/chai/chai.js"></script>
-    <script>
-      
-      window.initMochaPhantomJS();
-      mocha.setup('bdd')
-
-    </script>
-
-    <!-- load code you want to test here -->
     <script src="mapCommentTool.js"></script>
-    
+
     <script>
       L.MapCommentTool.addTo(map);
     </script>
 
-    <!-- load your test files here -->
-    <script src="test/test.js"></script>
-
-    <script>
-      mocha.run();
-    </script>
   </body>
 </html>

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-mocha-phantomjs -R dot --ssl-protocol=any test.html
+mocha-phantomjs -R spec --ssl-protocol=any test.html
