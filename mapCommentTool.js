@@ -29,6 +29,30 @@
     MapCommentTool.addTo = function(map) {
         var self = this;
 
+        var customControl = L.Control.extend({
+
+            options: {
+            position: 'topleft' 
+            //control position - allowed: 'topleft', 'topright', 'bottomleft', 'bottomright'
+            },
+
+            onAdd: function (map) {
+                var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+
+                container.style.backgroundColor = 'white';
+                container.style.width = '40px';
+                container.style.height = '40px';
+                container.style.cursor = 'pointer';
+                container.innerHTML = '<img src=pencil.png class="panel-control-icon">'; // this is temporary...
+                container.onclick = function(){
+                    self.ControlBar.toggle();
+                }
+
+                return container;
+            },
+        });
+        map.addControl(new customControl());
+
         var visibileClass = (self.ControlBar.isVisible()) ? 'visible' : '';
 
         // Create sidebar container
@@ -53,7 +77,10 @@
     }
 
     MapCommentTool.ControlBar = {
+        
         visible: false,
+        currentView: '',
+
         isVisible: function() {
             var self = this;
             return self.visible;
@@ -77,14 +104,16 @@
             map.keyboard.disable();
             if (map.tap) map.tap.disable();
             document.getElementById('map').style.cursor='default';
-            
+
+            self.currentView = self.displayControl('home');
+
             // on success, should return true
             return true;
         },
         hide: function(e) {
             var self = this;
             self.visible = false;
-            
+
             L.DomUtil.removeClass(self._container, 'visible');
             var controls = document.getElementsByClassName("leaflet-control leaflet-bar");
             for (var i = 0; i < controls.length; i++) {
@@ -106,7 +135,7 @@
         },
         toggle: function() {
             var self = this;
-            
+
             var toggleSuccess = self.isVisible() ? self.hide() : self.show();
 
             return toggleSuccess;
@@ -116,7 +145,34 @@
             var self = this;
             //if (e.propertyName == 'left' || e.propertyName == 'right' ||e.propertyName == 'bottom' || e.propertyName == 'top')
                 //self.fire(self.ControlBar.isVisible() ? 'shown' : 'hidden');
+        },
+
+        displayControl: function(mode) {
+            var self = this;
+            // clear the display
+            L.DomUtil.empty(self._container);
+
+            switch (mode) {
+                case 'home':
+                    self.homeView();
+                    break;
+                default:
+
+            }
+
+            return mode;
+            //
+        },
+
+        homeView: function() {
+            var self = this;
+            var homeView = L.DomUtil.create('div', 'controlbar-view controlbar-home', self._container);
+            var closeButton = L.DomUtil.create('button', 'controlbar-button', homeView);
+            closeButton.onclick = function() {
+                self.hide() 
+            };
         }
+
 
     }
 
