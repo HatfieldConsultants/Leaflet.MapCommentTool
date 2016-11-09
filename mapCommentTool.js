@@ -167,10 +167,17 @@
         homeView: function() {
             var self = this;
             var homeView = L.DomUtil.create('div', 'controlbar-view controlbar-home', self._container);
-            var closeButton = L.DomUtil.create('button', 'controlbar-button', homeView);
+            var closeButton = L.DomUtil.create('button', 'controlbar-button controlbar-close', homeView);
             closeButton.onclick = function() {
                 self.hide() 
             };
+            var br = L.DomUtil.create('br', '', homeView);
+            var newCommentButton = L.DomUtil.create('button', 'controlbar-button controlbar-new', homeView);
+            newCommentButton.innerHTML = "New Comment"
+            newCommentButton.onclick = function() {
+                alert('new comment woo!'); 
+            };
+
         }
 
 
