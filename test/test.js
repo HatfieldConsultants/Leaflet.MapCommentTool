@@ -24,6 +24,18 @@ describe('Initial Control Bar Status', function() {
 		assert.isNotOk(map.MapCommentTool.ControlBar.isVisible());
 	});
 
+	if (window.innerHeight == 987 && window.innerWidth == 1920) {
+		it('if client width is 1920x987, control bar should be on the right', function() {
+			assert.equal(map.MapCommentTool.ControlBar.options.position, 'right');
+		});
+	}
+	else if (window.innerHeight == 640 && window.innerWidth == 360) {
+		it('if client width is 360x640, control bar should be on the right', function() {
+			assert.equal(map.MapCommentTool.ControlBar.options.position, 'bottom');
+		});
+	}
+
+
 });
 
 describe('Control Bar Show/Hide', function() {
@@ -73,4 +85,26 @@ describe('Control Bar Show/Hide', function() {
 		assert.isNotOk(map.MapCommentTool.ControlBar.isVisible(), 'visibility state hidden once again');
 	});
 
+});
+
+
+describe('Comment Creation', function() {
+	it('initially there are no canvas layers', function() {
+		assert.equal(document.getElementsByTagName('canvas').length, 0, 'There are 0 canvas elements present on the page');
+	});
+
+	it('initially there are no comments in Comments.list', function() {
+		assert.equal(map.MapCommentTool.Comments.list.length, 0, 'There are 0 comments')
+	});
+
+	it('"startNewComment()" creates a comment and appends it to Comments.list', function() {
+		var comment = map.MapCommentTool.ControlBar.startNewComment();
+		assert.isOk(comment, 'startNewComment() successfully returned');
+		assert.equal(map.MapCommentTool.Comments.list.length, 1, 'There is now 1 new comment');
+		assert.isNotOk(map.MapCommentTool.Comments.saved(comment), 'comment has not yet been saved');
+	});
+
+	
+
+	
 });
