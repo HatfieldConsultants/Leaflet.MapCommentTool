@@ -15,69 +15,93 @@
     }
 }(function (L) {
     var MapCommentTool = {
+        options: {
+
+        },
+
+        getMessage: function() {
+            return 'Map Comment Tool';
+        },
+
+        addTo: function(map) {
+            var self = this;
+            self.currentMode = 'map';
+            var customControl = L.Control.extend({
+
+                options: {
+                position: 'topleft' 
+                //control position - allowed: 'topleft', 'topright', 'bottomleft', 'bottomright'
+                },
+
+                onAdd: function (map) {
+                    var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+
+                    container.style.backgroundColor = 'white';
+                    container.style.width = '40px';
+                    container.style.height = '40px';
+                    container.style.cursor = 'pointer';
+                    container.innerHTML = '<img src=pencil.png class="panel-control-icon">'; // this is temporary...
+                    container.onclick = function(){
+                        self.ControlBar.toggle();
+                    };
+
+                    return container;
+                },
+            });
+            map.addControl(new customControl());
+
+            var visibileClass = (self.ControlBar.isVisible()) ? 'visible' : '';
+
+            // decide control bar position
+
+            self.ControlBar.options.position = (window.innerHeight < window.innerWidth) ? 'right' : 'bottom';
+
+            // Create sidebar container
+            var container = self.ControlBar._container =
+                L.DomUtil.create('div', 'leaflet-control-bar-'+self.ControlBar.options.position+' leaflet-control-bar ' + visibileClass);
+            var content = self.ControlBar._contentContainer;
+
+            L.DomEvent
+                .on(container, 'transitionend',
+                self.ControlBar._handleTransitionEvent, self)
+                .on(container, 'webkitTransitionEnd',
+                self.ControlBar._handleTransitionEvent, self);
+
+            var controlContainer = map._controlContainer;
+            controlContainer.insertBefore(container, controlContainer.firstChild);
+
+            self._map = map;
+
+            map.MapCommentTool = MapCommentTool;           
+        },
+
+        startDrawingMode: function(comment) {
+            var self = this;
+            // spawn a drawing canvas
+            self.drawingCanvas = L.canvas({padding: 0});
+            self.drawingCanvas.addTo(map);
+
+            // set mode to "drawing"
+            self.currentMode = 'drawing';
+            // set toolbar view to "drawing"
+            self.ControlBar.currentView = self.ControlBar.displayControl('drawing', comment.id);
+
+        },
+
+        stopDrawingMode: function() {
+            var self = this;
+            self.drawingCanvas.removeFrom(map);
+            delete self.drawingCanvas;
+
+            // set mode to "drawing"
+            self.currentMode = 'controlBarHome';
+            // set toolbar view to "drawing"
+            self.ControlBar.currentView = self.ControlBar.displayControl('home');
+
+
+        }
     };
 
-    MapCommentTool.options = {
-    };
-
-    // implement your plugin
-    MapCommentTool.getMessage = function() {
-    	return 'Map Comment Tool';
-    };
-
-    MapCommentTool.addTo = function(map) {
-        var self = this;
-
-        var customControl = L.Control.extend({
-
-            options: {
-            position: 'topleft' 
-            //control position - allowed: 'topleft', 'topright', 'bottomleft', 'bottomright'
-            },
-
-            onAdd: function (map) {
-                var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-
-                container.style.backgroundColor = 'white';
-                container.style.width = '40px';
-                container.style.height = '40px';
-                container.style.cursor = 'pointer';
-                container.innerHTML = '<img src=pencil.png class="panel-control-icon">'; // this is temporary...
-                container.onclick = function(){
-                    self.ControlBar.toggle();
-                };
-
-                return container;
-            },
-        });
-        map.addControl(new customControl());
-
-        var visibileClass = (self.ControlBar.isVisible()) ? 'visible' : '';
-
-        // decide control bar position
-
-        self.ControlBar.options.position = (window.innerHeight < window.innerWidth) ? 'right' : 'bottom';
-
-        // Create sidebar container
-        var container = self.ControlBar._container =
-            L.DomUtil.create('div', 'leaflet-control-bar-'+self.ControlBar.options.position+' leaflet-control-bar ' + visibileClass);
-        var content = self.ControlBar._contentContainer;
-
-        L.DomEvent
-            .on(container, 'transitionend',
-            self.ControlBar._handleTransitionEvent, self)
-            .on(container, 'webkitTransitionEnd',
-            self.ControlBar._handleTransitionEvent, self);
-
-        var controlContainer = map._controlContainer;
-        controlContainer.insertBefore(container, controlContainer.firstChild);
-
-        self._map = map;
-
-        map.MapCommentTool = MapCommentTool;
-
-
-    };
 
     MapCommentTool.ControlBar = {
 
@@ -94,6 +118,9 @@
         },
         show: function() {
             var self = this;
+
+            window.map.MapCommentTool.currentMode = 'controlBarHome';
+
             self.visible = true;
 
             L.DomUtil.addClass(self._container, 'visible');
@@ -121,6 +148,9 @@
         },
         hide: function(e) {
             var self = this;
+
+            window.map.MapCommentTool.currentMode = 'map';
+
             self.visible = false;
 
             L.DomUtil.removeClass(self._container, 'visible');
@@ -158,7 +188,7 @@
                 //self.fire(self.ControlBar.isVisible() ? 'shown' : 'hidden');
         },
 
-        displayControl: function(mode) {
+        displayControl: function(mode, commentId) {
             var self = this;
             // clear the display
             L.DomUtil.empty(self._container);
@@ -166,6 +196,9 @@
             switch (mode) {
                 case 'home':
                     self.homeView();
+                    break;
+                case 'drawing':
+                    self.drawingView(commentId);
                     break;
                 default:
 
@@ -191,15 +224,60 @@
 
         },
 
+        drawingView: function(commentId) {
+            var self = this;
+            var drawingView = L.DomUtil.create('div', 'controlbar-view controlbar-home', self._container);
+            var br = L.DomUtil.create('br', '', drawingView);
+            var saveDrawingButton = L.DomUtil.create('button', 'controlbar-button controlbar-save', drawingView);
+            saveDrawingButton.innerHTML = "Save";
+            saveDrawingButton.onclick = function() {
+                self.saveDrawing(commentId); 
+            };
+            var cancelDrawingButton = L.DomUtil.create('button', 'controlbar-button controlbar-cancel', drawingView);
+            cancelDrawingButton.innerHTML = "Cancel";
+            cancelDrawingButton.onclick = function() {
+                self.cancelDrawing(commentId); 
+            };
+
+        },
+
         startNewComment: function() {
             var self = this;
 
             // create new comment
-            var newComment = window.map.MapCommentTool.Comments.newComment()
+            var newComment = window.map.MapCommentTool.Comments.newComment();
 
             // trigger drawing mode
-            //...
-            return comment;
+            window.map.MapCommentTool.startDrawingMode(newComment);
+
+            return newComment;
+        },
+
+        saveDrawing: function(commentId) {
+            var commentIndex = window.map.MapCommentTool.Comments.list.findIndex(function (comment) {
+                        return comment.id === commentId;
+            });
+            window.map.MapCommentTool.Comments.list[commentIndex].saveState = true;
+
+            //... more complicated saving logic ...
+
+            window.map.MapCommentTool.stopDrawingMode();
+            return true;
+        },
+
+        cancelDrawing: function(commentId) {
+            var commentIndex = window.map.MapCommentTool.Comments.list.findIndex(function (comment) {
+                        return comment.id === commentId;
+            });
+            var comment = window.map.MapCommentTool.Comments.list[commentIndex];
+            if (!comment.saveState) {
+                window.map.MapCommentTool.Comments.list.pop();
+            }
+            else {
+                // throw out changes...
+            }
+            window.map.MapCommentTool.stopDrawingMode();
+            return true;
         }
 
     };
@@ -234,7 +312,8 @@
                 return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
             }
             return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
-        }
+        },
+
     };
 
     // return your plugin when you are done
