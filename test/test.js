@@ -11,11 +11,10 @@ describe('Map Loaded Properly', function() {
 });
 
 describe('Plugin Loaded Properly', function() {
-
-	it('getMessage() should return "Map Comment Tool"', function() {
-		assert.equal(map.MapCommentTool.getMessage(), 'Map Comment Tool' );
+	it('General Sanity Checks', function() {
+		assert.equal(map.MapCommentTool.getMessage(), 'Map Comment Tool', 'getMessage() returns "Map Comment Tool"' );
+		assert.equal(map.MapCommentTool.currentMode, 'map', 'Mode set to "map"');
 	});
-	
 });
 
 describe('Initial Control Bar Status', function() {
@@ -23,6 +22,18 @@ describe('Initial Control Bar Status', function() {
 	it('isVisible() should be "false"', function() {
 		assert.isNotOk(map.MapCommentTool.ControlBar.isVisible());
 	});
+
+	if (window.innerHeight == 987 && window.innerWidth == 1920) {
+		it('if client width is 1920x987, control bar should be on the right', function() {
+			assert.equal(map.MapCommentTool.ControlBar.options.position, 'right');
+		});
+	}
+	else if (window.innerHeight == 640 && window.innerWidth == 360) {
+		it('if client width is 360x640, control bar should be on the right', function() {
+			assert.equal(map.MapCommentTool.ControlBar.options.position, 'bottom');
+		});
+	}
+
 
 });
 
@@ -71,6 +82,76 @@ describe('Control Bar Show/Hide', function() {
 		assert.isNotOk(map.keyboard.enabled(), 'keyboard is disabled');
 		assert.isOk(map.MapCommentTool.ControlBar.hide(), 'hide() executed successfully');
 		assert.isNotOk(map.MapCommentTool.ControlBar.isVisible(), 'visibility state hidden once again');
+	});
+
+});
+
+
+describe('Comment Creation w/ Cancel', function() {
+	
+	var comment;
+
+	it('initially there are no canvas layers', function() {
+		assert.equal(document.getElementsByTagName('canvas').length, 0, 'There are 0 canvas elements present on the page');
+	});
+
+	it('initially there are no comments in Comments.list', function() {
+		assert.equal(map.MapCommentTool.Comments.list.length, 0, 'There are 0 comments');
+	});
+
+	it('"startNewComment()" creates a comment and appends it to Comments.list', function() {
+		comment = map.MapCommentTool.ControlBar.startNewComment();
+		assert.isOk(comment, 'startNewComment() successfully returned');
+		assert.equal(map.MapCommentTool.Comments.list.length, 1, 'There is now 1 new comment');
+		assert.isNotOk(map.MapCommentTool.Comments.saved(comment), 'comment has not yet been saved');
+	});
+
+	it('drawing mode has been successfully initiated', function() {
+		assert.equal(map.MapCommentTool.currentMode, 'drawing', 'Mode set to "drawing"');
+		assert.equal(document.getElementsByTagName('canvas').length, 1, 'There is 1 canvas element present on the page');
+		assert.equal(map.MapCommentTool.ControlBar.currentView, 'drawing', 'View set to "drawing"');
+	});
+
+	it('comment successfully cancelled', function() {
+		assert.isOk(map.MapCommentTool.ControlBar.cancelDrawing(comment.id), 'cancelDrawing() returns true');
+		assert.equal(map.MapCommentTool.Comments.list.length, 0, 'There are still 0 comments');
+		assert.equal(document.getElementsByTagName('canvas').length, 0, 'There are now 0 canvas elements present on the page');
+		assert.equal(map.MapCommentTool.currentMode, 'controlBarHome', 'Mode is now set to "map"');
+		assert.equal(map.MapCommentTool.ControlBar.currentView, 'home');
+	});
+});
+
+describe('Comment Creation w/ Save', function() {
+	var comment;
+
+	it('initially there are no canvas layers', function() {
+		assert.equal(document.getElementsByTagName('canvas').length, 0, 'There are 0 canvas elements present on the page');
+	});
+
+	it('initially there are no comments in Comments.list', function() {
+		assert.equal(map.MapCommentTool.Comments.list.length, 0, 'There are 0 comments');
+	});
+
+	it('"startNewComment()" creates a comment and appends it to Comments.list', function() {
+		comment = map.MapCommentTool.ControlBar.startNewComment();
+		assert.isOk(comment, 'startNewComment() successfully returned');
+		assert.equal(map.MapCommentTool.Comments.list.length, 1, 'There is now 1 new comment');
+		assert.isNotOk(map.MapCommentTool.Comments.saved(comment), 'comment has not yet been saved');
+	});
+
+	it('drawing mode has been successfully initiated', function() {
+		assert.equal(map.MapCommentTool.currentMode, 'drawing', 'Mode set to "drawing"');
+		assert.equal(document.getElementsByTagName('canvas').length, 1, 'There is 1 element present on the page');
+		assert.equal(map.MapCommentTool.ControlBar.currentView, 'drawing', 'View set to "drawing"');
+	});
+
+	it('comment successfully saved', function() {
+		assert.isOk(map.MapCommentTool.ControlBar.saveDrawing(comment.id), 'saveDrawing() returns true');
+		assert.equal(map.MapCommentTool.Comments.list.length, 1, 'There is now 1 comment');
+		assert.equal(map.MapCommentTool.Comments.list[0].id, comment.id, 'The comment id has been saved successfully');
+		assert.equal(document.getElementsByTagName('canvas').length, 0, 'There are now 0 canvas elements present on the page');
+		assert.equal(map.MapCommentTool.currentMode, 'controlBarHome', 'Mode is now set to "map"');
+		assert.equal(map.MapCommentTool.ControlBar.currentView, 'home');
 	});
 
 });
