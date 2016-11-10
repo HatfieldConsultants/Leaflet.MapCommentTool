@@ -58,7 +58,8 @@
 
             // Create sidebar container
             var container = self.ControlBar._container =
-                L.DomUtil.create('div', 'leaflet-control-bar-'+self.ControlBar.options.position+' leaflet-control-bar ' + visibileClass);
+                L.DomUtil.create('div', 'leaflet-control-bar-'+self.ControlBar.options.position+' leaflet-control-bar ' 
+                    + visibileClass);
             var content = self.ControlBar._contentContainer;
 
             L.DomEvent
@@ -294,7 +295,7 @@
 
         newComment: function() {
             var self = this;
-            var comment = {};
+            var comment = L.layerGroup();
             comment.saveState = false;
 
             comment.id = window.map.MapCommentTool.Util.generateGUID();
@@ -315,6 +316,7 @@
         },
 
     };
+
 
     // return your plugin when you are done
     return MapCommentTool;
