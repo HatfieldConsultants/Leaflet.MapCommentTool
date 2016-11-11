@@ -86,6 +86,11 @@
             // set toolbar view to "drawing"
             self.ControlBar.currentView = self.ControlBar.displayControl('drawing', comment.id);
 
+            // Remove all comment layer groups from map
+            window.map.MapCommentTool.Comments.list.forEach(function(comment){
+                comment.removeFrom(map);
+            });
+
         },
 
         stopDrawingMode: function() {
@@ -98,6 +103,10 @@
             // set toolbar view to "drawing"
             self.ControlBar.currentView = self.ControlBar.displayControl('home');
 
+            // Add all comment layer groups to map
+            window.map.MapCommentTool.Comments.list.forEach(function(comment){
+                comment.addTo(map);
+            });
 
         }
     };
@@ -210,6 +219,7 @@
 
         homeView: function() {
             var self = this;
+
             var homeView = L.DomUtil.create('div', 'controlbar-view controlbar-home', self._container);
             var closeButton = L.DomUtil.create('button', 'controlbar-button controlbar-close', homeView);
             closeButton.onclick = function() {
@@ -221,6 +231,13 @@
             newCommentButton.onclick = function() {
                 return self.startNewComment(); 
             };
+
+            var commentListDiv = L.DomUtil.create('div', 'comment-list-div', homeView);
+            var commentList = L.DomUtil.create('ul', 'comment-list-ul', commentListDiv);
+            window.map.MapCommentTool.Comments.list.forEach(function(comment) {
+                var commentLi = L.DomUtil.create('li', 'comment-list-li', commentList);
+                commentLi.innerHTML = comment.id;
+            });
 
         },
 
@@ -257,9 +274,21 @@
             var commentIndex = window.map.MapCommentTool.Comments.list.findIndex(function (comment) {
                         return comment.id === commentId;
             });
-            window.map.MapCommentTool.Comments.list[commentIndex].saveState = true;
+            
+            var comment = window.map.MapCommentTool.Comments.list[commentIndex];
 
-            //... more complicated saving logic ...
+            comment.saveState = true;
+
+            // SAVING LOGIC
+            var context = window.map.MapCommentTool.drawingCanvas._ctx;
+            var canvas = context.canvas;
+
+            var canvasDrawing = canvas.toDataURL("data:image/png");
+
+            var mapBounds = window.map.getBounds();
+            var imageBounds = [[mapBounds._northEast.lat,mapBounds._northEast.lng], [mapBounds._southWest.lat,mapBounds._southWest.lng]];
+            var drawing = L.imageOverlay(canvasDrawing, imageBounds);
+            comment.addLayer(drawing);
 
             window.map.MapCommentTool.stopDrawingMode();
             return true;
@@ -328,6 +357,13 @@
         },
 
         pen: {
+
+            color: '',
+            strokeWidth: '',
+
+            setListeners: function() {
+
+            }
 
         },
 
