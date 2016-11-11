@@ -98,7 +98,7 @@ describe('Empty Comment Creation, Cancellation, and Saving', function() {
 		it('initially there are no comments in Comments.list nor on the control bar', function() {
 			assert.equal(map.MapCommentTool.Comments.list.length, 0, 'There are 0 comments in Comments.list');
 			
-			var listComments = document.getElementsByClassName("list-comments");
+			var listComments = document.getElementsByClassName("comment-list-li");
 			assert.equal(listComments.length, 0, 'There are 0 comments in the view');
 
 		});
@@ -144,7 +144,7 @@ describe('Empty Comment Creation, Cancellation, and Saving', function() {
 		it('initially there are no comments in Comments.list nor on the control bar', function() {
 			assert.equal(map.MapCommentTool.Comments.list.length, 0, 'There are 0 comments in Comments.list');
 			
-			var listComments = document.getElementsByClassName("list-comments");
+			var listComments = document.getElementsByClassName("comment-list-li");
 			assert.equal(listComments.length, 0, 'There are 0 comments in the view');
 		});
 
@@ -175,9 +175,52 @@ describe('Empty Comment Creation, Cancellation, and Saving', function() {
 			assert.equal(visibleComments.length, 1, 'there is 1 image layer present on the map');
 
 		});
-
 	});
-
-
 });
 
+describe('Drawn Comment Creation, Cancellation, and Saving', function() {
+	describe('Drawn Comment Creation w/ Cancel', function() {
+		var comment;
+
+		it('initially there are no canvas layers', function() {
+			assert.equal(document.getElementsByTagName('canvas').length, 0, 'There are 0 canvas elements present on the page');
+		});
+
+		it('initially there is 1 comment in Comments.list and on the control bar', function() {
+			assert.equal(map.MapCommentTool.Comments.list.length, 1, 'There are 1 comments in Comments.list');
+			
+			var listComments = document.getElementsByClassName("comment-list-li");
+			assert.equal(listComments.length, 1, 'There is 1 comment in the view');
+		});
+
+		it('"startNewComment()" creates a comment and appends it to Comments.list', function() {
+			comment = map.MapCommentTool.ControlBar.startNewComment();
+			assert.isOk(comment, 'startNewComment() successfully returned');
+			assert.equal(map.MapCommentTool.Comments.list.length, 2, 'There are now 2 comments');
+			assert.isNotOk(map.MapCommentTool.Comments.saved(comment), 'comment has not yet been saved');
+		});
+
+		it('drawing mode has been successfully initiated', function() {
+			assert.equal(map.MapCommentTool.currentMode, 'drawing', 'Mode set to "drawing"');
+			assert.equal(document.getElementsByTagName('canvas').length, 1, 'There is 1 element present on the page');
+			assert.equal(map.MapCommentTool.ControlBar.currentView, 'drawing', 'View set to "drawing"');
+		});
+
+
+		// ........ DRAW ON THE CANVAS ......... //
+
+		it('comment successfully saved', function() {
+			assert.isOk(map.MapCommentTool.ControlBar.saveDrawing(comment.id), 'saveDrawing() returns true');
+			assert.equal(map.MapCommentTool.Comments.list.length, 2, 'There are now 2 comments');
+			var listComments = document.getElementsByClassName("comment-list-li");
+			assert.equal(listComments.length, 2, 'There are now 2 comments in the view');
+			assert.equal(map.MapCommentTool.Comments.list[1].id, comment.id, 'The comment id has been saved successfully');
+			assert.equal(document.getElementsByTagName('canvas').length, 0, 'There are now 0 canvas elements present on the page');
+			assert.equal(map.MapCommentTool.currentMode, 'controlBarHome', 'Mode is now set to "map"');
+			assert.equal(map.MapCommentTool.ControlBar.currentView, 'home');
+
+			var visibleComments = document.getElementsByClassName("leaflet-image-layer");
+			assert.equal(visibleComments.length, 2, 'there are 2 image layers present on the map');
+		});
+	});
+});
