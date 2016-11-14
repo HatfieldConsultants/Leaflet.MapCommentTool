@@ -481,11 +481,70 @@
         },
 
         eraser: {
-            name: 'eraser',
-            setListeners: function(){
+         name: 'eraser',
+            color: '',
+            strokeWidth: '',
+            stroke: false,
+            mouseX: 0,
+            mouseY: 0,
+            lastX: -1,
+            lastY: -1,
+            drawLine: function(ctx,x,y,size) {
+                var self = this;
+                //operation properties
+                ctx.globalCompositeOperation = "destination-out";
 
+                // If lastX is not set, set lastX and lastY to the current position 
+                if (self.lastX==-1) {
+                    self.lastX=x;
+                    self.lastY=y;
+                }
+
+                r=250; g=0; b=0; a=255;
+                ctx.strokeStyle = "rgba("+r+","+g+","+b+","+(a/255)+")";
+                ctx.lineCap = "round";
+                ctx.beginPath();
+                ctx.moveTo(self.lastX,self.lastY);
+                ctx.lineTo(x,y);
+                ctx.lineWidth = size;
+                ctx.stroke();
+                ctx.closePath();
+                // Update the last position to reference the current position
+                self.lastX=x;
+                self.lastY=y;
             },
 
+            // don't have to remove listeners because the canvas gets removed anyways...
+            setListeners: function() {
+                var self = this;
+                var canvas = window.map.MapCommentTool.drawingCanvas._container;
+                var context = canvas.getContext('2d');
+                canvas.addEventListener('mousedown', function() {
+                    if(window.map.MapCommentTool.Tools.currentTool == 'eraser') {
+                        self.stroke = true;
+                    }
+                });
+
+                canvas.addEventListener('mousemove', function(e) {
+                    if (self.stroke && window.map.MapCommentTool.Tools.currentTool == 'eraser') {
+                        var pos = window.map.MapCommentTool.Util.getMousePos(canvas, e.clientX, e.clientY);
+                        self.mouseX = pos.x;
+                        self.mouseY = pos.y;
+                        self.drawLine(context , self.mouseX, self.mouseY, 35);
+                    }
+                }, false);
+
+                window.addEventListener('mouseup', function(e) {
+                    if (self.stroke && window.map.MapCommentTool.Tools.currentTool == 'eraser') {
+                        self.stroke = false;
+                        // Reset lastX and lastY to -1 to indicate that they are now invalid, since we have lifted the "pen"
+                        self.lastX=-1;
+                        self.lastY=-1;
+                    }
+
+                }, false);
+
+            }
         },
 
         text: {

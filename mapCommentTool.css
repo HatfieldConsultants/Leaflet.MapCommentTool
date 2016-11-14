@@ -144,7 +144,7 @@
 }
 
 .drawing-canvas-eraser {
-    cursor:url(eraser.png) 0 50, auto;
+    cursor:url(eraser.png) 15 30, auto;
 }
 
 .drawing-canvas-text {
