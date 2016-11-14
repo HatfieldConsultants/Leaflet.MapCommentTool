@@ -263,7 +263,7 @@
             cancelDrawingButton.onclick = function() {
                 self.cancelDrawing(commentId); 
             };
-            var br = L.DomUtil.create('br', '', drawingView);
+            var br2 = L.DomUtil.create('br', '', drawingView);
             var penSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-cancel', drawingView);
             penSelectButton.innerHTML = "Pen";
             penSelectButton.onclick = function() {
