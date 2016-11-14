@@ -263,6 +263,22 @@
             cancelDrawingButton.onclick = function() {
                 self.cancelDrawing(commentId); 
             };
+            var br = L.DomUtil.create('br', '', drawingView);
+            var penSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-cancel', drawingView);
+            penSelectButton.innerHTML = "Pen";
+            penSelectButton.onclick = function() {
+                window.map.MapCommentTool.Tools.setCurrentTool('pen'); 
+            };
+            var eraserSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-cancel', drawingView);
+            eraserSelectButton.innerHTML = "Eraser";
+            eraserSelectButton.onclick = function() {
+                window.map.MapCommentTool.Tools.setCurrentTool('eraser'); 
+            };
+            var textSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-cancel', drawingView);
+            textSelectButton.innerHTML = "Text";
+            textSelectButton.onclick = function() {
+                window.map.MapCommentTool.Tools.setCurrentTool('text'); 
+            };
 
         },
 
@@ -375,13 +391,25 @@
             var self = this;
             self.toolList.forEach(function(tool) {
                 self[tool].setListeners();
-                self.currentTool = self.defaultTool;
             });
+
+            self.setCurrentTool(self.defaultTool);
+        
             // initialize tools
         },
 
         off: function() {
             // turn tools off
+        },
+
+        setCurrentTool: function(tool) {
+            var self = this;
+            self.currentTool = tool;
+            // set canvas class
+            self.toolList.forEach(function(toolname) {
+                window.map.MapCommentTool.drawingCanvas._container.classList.remove("drawing-canvas-" + toolname);
+            });
+            window.map.MapCommentTool.drawingCanvas._container.classList.add("drawing-canvas-" + tool);
         },
 
         pen: {
