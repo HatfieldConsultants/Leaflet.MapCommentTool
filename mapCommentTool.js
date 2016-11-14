@@ -81,10 +81,21 @@
             self.drawingCanvas = L.canvas({padding: 0});
             self.drawingCanvas.addTo(map);
 
+            // set canvas class
+            self.drawingCanvas._container.className += " drawing-canvas";
+
             // set mode to "drawing"
             self.currentMode = 'drawing';
             // set toolbar view to "drawing"
             self.ControlBar.currentView = self.ControlBar.displayControl('drawing', comment.id);
+
+            // Remove all comment layer groups from map
+            window.map.MapCommentTool.Comments.list.forEach(function(comment){
+                comment.removeFrom(map);
+            });
+
+            // turn on all drawing tools
+            self.Tools.on();
 
         },
 
@@ -98,7 +109,13 @@
             // set toolbar view to "drawing"
             self.ControlBar.currentView = self.ControlBar.displayControl('home');
 
+            // turn off all drawing tools
+            self.Tools.off();
 
+            // Add all comment layer groups to map
+            window.map.MapCommentTool.Comments.list.forEach(function(comment){
+                comment.addTo(map);
+            });
         }
     };
 
@@ -210,6 +227,7 @@
 
         homeView: function() {
             var self = this;
+
             var homeView = L.DomUtil.create('div', 'controlbar-view controlbar-home', self._container);
             var closeButton = L.DomUtil.create('button', 'controlbar-button controlbar-close', homeView);
             closeButton.onclick = function() {
@@ -221,6 +239,13 @@
             newCommentButton.onclick = function() {
                 return self.startNewComment(); 
             };
+
+            var commentListDiv = L.DomUtil.create('div', 'comment-list-div', homeView);
+            var commentList = L.DomUtil.create('ul', 'comment-list-ul', commentListDiv);
+            window.map.MapCommentTool.Comments.list.forEach(function(comment) {
+                var commentLi = L.DomUtil.create('li', 'comment-list-li', commentList);
+                commentLi.innerHTML = comment.id;
+            });
 
         },
 
@@ -257,9 +282,21 @@
             var commentIndex = window.map.MapCommentTool.Comments.list.findIndex(function (comment) {
                         return comment.id === commentId;
             });
-            window.map.MapCommentTool.Comments.list[commentIndex].saveState = true;
+            
+            var comment = window.map.MapCommentTool.Comments.list[commentIndex];
 
-            //... more complicated saving logic ...
+            comment.saveState = true;
+
+            // SAVING LOGIC
+            var context = window.map.MapCommentTool.drawingCanvas._ctx;
+            var canvas = context.canvas;
+
+            var canvasDrawing = canvas.toDataURL("data:image/png");
+
+            var mapBounds = window.map.getBounds();
+            var imageBounds = [[mapBounds._northEast.lat,mapBounds._northEast.lng], [mapBounds._southWest.lat,mapBounds._southWest.lng]];
+            var drawing = L.imageOverlay(canvasDrawing, imageBounds);
+            comment.addLayer(drawing);
 
             window.map.MapCommentTool.stopDrawingMode();
             return true;
@@ -314,12 +351,32 @@
             return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
         },
 
+        getMousePos: function(canvas, x, y) {
+            // this parses stuff like "translate3d(-1257px, -57px, 0px)" and turns it into an array like...
+            // [ "translate3d", "-1257", "", "", "-57", "", "", "0", "", "" ]
+            var canvasTransformArray = canvas.style.transform.split(/,|\(|\)|px| /);
+            var x_true = x + (parseFloat(canvasTransformArray[1]));
+            var y_true = y + (parseFloat(canvasTransformArray[4]));
+            return {
+                x: x_true,
+                y: y_true,
+            };
+
+        },
+
     };
 
     MapCommentTool.Tools = {
         currentTool: '',
+        toolList: ['pen', 'eraser', 'text'],
+        defaultTool: 'pen',
 
         on: function() {
+            var self = this;
+            self.toolList.forEach(function(tool) {
+                self[tool].setListeners();
+                self.currentTool = self.defaultTool;
+            });
             // initialize tools
         },
 
@@ -328,15 +385,86 @@
         },
 
         pen: {
+            name: 'pen',
+            color: '',
+            strokeWidth: '',
+            stroke: false,
+            mouseX: 0,
+            mouseY: 0,
+            lastX: -1,
+            lastY: -1,
+            drawLine: function(ctx,x,y,size) {
+                var self = this;
+                //operation properties
+                ctx.globalCompositeOperation = "source-over";
+
+                // If lastX is not set, set lastX and lastY to the current position 
+                if (self.lastX==-1) {
+                    self.lastX=x;
+                    self.lastY=y;
+                }
+
+                r=250; g=0; b=0; a=255;
+                ctx.strokeStyle = "rgba("+r+","+g+","+b+","+(a/255)+")";
+                ctx.lineCap = "round";
+                ctx.beginPath();
+                ctx.moveTo(self.lastX,self.lastY);
+                ctx.lineTo(x,y);
+                ctx.lineWidth = size;
+                ctx.stroke();
+                ctx.closePath();
+                // Update the last position to reference the current position
+                self.lastX=x;
+                self.lastY=y;
+            },
+
+            // don't have to remove listeners because the canvas gets removed anyways...
+            setListeners: function() {
+                var self = this;
+                var canvas = window.map.MapCommentTool.drawingCanvas._container;
+                var context = canvas.getContext('2d');
+                canvas.addEventListener('mousedown', function() {
+                    if(window.map.MapCommentTool.Tools.currentTool == 'pen') {
+                        self.stroke = true;
+                    }
+                });
+
+                canvas.addEventListener('mousemove', function(e) {
+                    if (self.stroke && window.map.MapCommentTool.Tools.currentTool == 'pen') {
+                        var pos = window.map.MapCommentTool.Util.getMousePos(canvas, e.clientX, e.clientY);
+                        self.mouseX = pos.x;
+                        self.mouseY = pos.y;
+                        self.drawLine(context , self.mouseX, self.mouseY, 3);
+                    }
+                }, false);
+
+                window.addEventListener('mouseup', function(e) {
+                    if (self.stroke && window.map.MapCommentTool.Tools.currentTool == 'pen') {
+                        self.stroke = false;
+                        // Reset lastX and lastY to -1 to indicate that they are now invalid, since we have lifted the "pen"
+                        self.lastX=-1;
+                        self.lastY=-1;
+                    }
+
+                }, false);
+
+            }
 
         },
 
         eraser: {
+            name: 'eraser',
+            setListeners: function(){
+
+            },
 
         },
 
         text: {
+            name: 'text',
+            setListeners: function(){
 
+            },
         }
 
     };
