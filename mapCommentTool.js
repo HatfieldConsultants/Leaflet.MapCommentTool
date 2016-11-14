@@ -377,9 +377,7 @@
                 x: x_true,
                 y: y_true,
             };
-
         },
-
     };
 
     MapCommentTool.Tools = {
@@ -389,9 +387,6 @@
 
         on: function() {
             var self = this;
-            self.toolList.forEach(function(tool) {
-                self[tool].setListeners();
-            });
 
             self.setCurrentTool(self.defaultTool);
         
@@ -404,12 +399,16 @@
 
         setCurrentTool: function(tool) {
             var self = this;
+            if (self.currentTool) {
+                self[self.currentTool].terminate();
+            }
             self.currentTool = tool;
             // set canvas class
             self.toolList.forEach(function(toolname) {
                 window.map.MapCommentTool.drawingCanvas._container.classList.remove("drawing-canvas-" + toolname);
             });
             window.map.MapCommentTool.drawingCanvas._container.classList.add("drawing-canvas-" + tool);
+            self[self.currentTool].initialize();
         },
 
         pen: {
@@ -421,6 +420,13 @@
             mouseY: 0,
             lastX: -1,
             lastY: -1,
+            initialize: function() {
+                var self = this;
+                self.setListeners();
+            },
+            terminate: function() {
+                // tear down environment
+            },
             drawLine: function(ctx,x,y,size) {
                 var self = this;
                 //operation properties
@@ -473,11 +479,8 @@
                         self.lastX=-1;
                         self.lastY=-1;
                     }
-
                 }, false);
-
             }
-
         },
 
         eraser: {
@@ -489,6 +492,13 @@
             mouseY: 0,
             lastX: -1,
             lastY: -1,
+            initialize: function() {
+                var self = this;
+                self.setListeners();
+            },
+            terminate: function() {
+                // tear down environment
+            },
             drawLine: function(ctx,x,y,size) {
                 var self = this;
                 //operation properties
@@ -541,16 +551,43 @@
                         self.lastX=-1;
                         self.lastY=-1;
                     }
-
                 }, false);
-
             }
         },
 
         text: {
             name: 'text',
+            state: 'addMarker',
+            initialize: function() {
+                var self = this;
+                self.setListeners();
+                map.getPane('markerPane').style['z-index'] = 600;
+            },
+            terminate: function() {
+                map.getPane('markerPane').style['z-index'] = 300;
+            },
+            handleText: function(e) {
+                var self = window.map.MapCommentTool.Tools.text;
+                if (e.originalEvent.explicitOriginalTarget.nodeName == 'CANVAS') {
+                    if (window.map.MapCommentTool.Tools.currentTool == 'text' && self.state == 'addMarker') {
+                        var myIcon = L.divIcon({className: 'text-comment-div', html: '<textarea class="text-comment-input" maxlength="300"></textarea>'});
+                        var marker = L.marker(e.latlng, {icon: myIcon});
+                        marker.addTo(map);
+                        marker._icon.children[0].focus();
+                        self.state = 'saveMarker';
+                    }
+                    else if (window.map.MapCommentTool.Tools.currentTool == 'text' && self.state == 'saveMarker') {
+                        self.state = 'addMarker';
+                    }
+                }
+            },
+            saveTextMarker: function(e) {
+            },
             setListeners: function(){
-
+                var self = this;
+                var canvas = window.map.MapCommentTool.drawingCanvas._container;
+                var context = canvas.getContext('2d');
+                window.map.on('click', self.handleText);
             },
         }
 
