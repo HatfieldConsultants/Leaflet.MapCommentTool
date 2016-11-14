@@ -139,6 +139,14 @@
 .controlbar-new {
 }
 
-.drawing-canvas {
-    cursor: crosshair;
+.drawing-canvas-pen {
+    cursor:url(red-pen.png) 0 50, auto;
+}
+
+.drawing-canvas-eraser {
+    cursor:url(eraser.png) 0 50, auto;
+}
+
+.drawing-canvas-text {
+    cursor:url(text.png) 0 50, auto;
 }
