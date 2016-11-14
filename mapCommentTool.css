@@ -139,3 +139,6 @@
 .controlbar-new {
 }
 
+.drawing-canvas {
+    cursor: crosshair;
+}

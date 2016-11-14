@@ -206,7 +206,9 @@ describe('Drawn Comment Creation, Cancellation, and Saving', function() {
 			assert.equal(map.MapCommentTool.ControlBar.currentView, 'drawing', 'View set to "drawing"');
 		});
 
+		it('check that pen tool is set by default');
 
+		it('draw several strokes on the canvas');
 		// ........ DRAW ON THE CANVAS ......... //
 
 		it('comment successfully saved', function() {
