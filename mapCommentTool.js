@@ -81,6 +81,11 @@
             self.drawingCanvas = L.canvas({padding: 0});
             self.drawingCanvas.addTo(map);
 
+            if (comment.saveState) {
+                // load canvas with previous image
+                // TODOOOOO
+            }
+
             // set canvas class
             self.drawingCanvas._container.className += " drawing-canvas";
 
@@ -93,6 +98,8 @@
             window.map.MapCommentTool.Comments.list.forEach(function(comment){
                 comment.removeFrom(map);
             });
+
+            window.map.MapCommentTool.Comments.editingComment = comment;
 
             // turn on all drawing tools
             self.Tools.on();
@@ -112,9 +119,19 @@
             // turn off all drawing tools
             self.Tools.off();
 
+            window.map.MapCommentTool.Comments.editingComment = '';
+
             // Add all comment layer groups to map
             window.map.MapCommentTool.Comments.list.forEach(function(comment){
                 comment.addTo(map);
+            });
+
+            window.map.MapCommentTool.Comments.list.forEach(function(comment){
+                comment.getLayers().forEach(function(layer) {
+                    if (layer.layerType == 'textArea') {
+                        layer.removeFrom(map);
+                    }
+                });
             });
         }
     };
@@ -245,6 +262,27 @@
             window.map.MapCommentTool.Comments.list.forEach(function(comment) {
                 var commentLi = L.DomUtil.create('li', 'comment-list-li', commentList);
                 commentLi.innerHTML = comment.id;
+                var image;
+                comment.getLayers().forEach(function(layer) {
+                    if (layer.layerType == 'drawing') {
+                        image = layer;
+                    }
+                });
+
+                // temporary... will be changed to small buttons
+
+                var viewCommentButton = L.DomUtil.create('u', '', commentLi);
+                viewCommentButton.innerHTML = " View ";
+                viewCommentButton.onclick = function() {
+                    map.flyToBounds(image._bounds, {animate: false});
+                };
+
+                var editCommentButton = L.DomUtil.create('u', '', commentLi);
+                editCommentButton.innerHTML = " Edit ";
+                editCommentButton.onclick = function() {
+                    return self.editComment(comment, image); 
+                };
+
             });
 
         },
@@ -294,14 +332,33 @@
             return newComment;
         },
 
+        editComment: function(comment, image) {
+            var self = this;
+            // fly to comment
+            map.flyToBounds(image._bounds, {animate: false});
+
+            // trigger drawing mode
+            window.map.MapCommentTool.startDrawingMode(comment);
+           
+            var canvas = window.map.MapCommentTool.drawingCanvas._container;
+            var context = canvas.getContext('2d');
+            var canvasTransformArray = canvas.style.transform.split(/,|\(|\)|px| /);
+
+            var imageObj = new Image();
+            imageObj.onload = function() {
+                context.drawImage(imageObj, (parseFloat(canvasTransformArray[1])), (parseFloat(canvasTransformArray[4])));
+            };
+
+            imageObj.src = image._image.src;                
+
+        },
+
         saveDrawing: function(commentId) {
             var commentIndex = window.map.MapCommentTool.Comments.list.findIndex(function (comment) {
                         return comment.id === commentId;
             });
             
             var comment = window.map.MapCommentTool.Comments.list[commentIndex];
-
-            comment.saveState = true;
 
             // SAVING LOGIC
             var context = window.map.MapCommentTool.drawingCanvas._ctx;
@@ -312,10 +369,54 @@
             var mapBounds = window.map.getBounds();
             var imageBounds = [[mapBounds._northEast.lat,mapBounds._northEast.lng], [mapBounds._southWest.lat,mapBounds._southWest.lng]];
             var drawing = L.imageOverlay(canvasDrawing, imageBounds);
-            comment.addLayer(drawing);
+            drawing.layerType = 'drawing';
 
+            if (comment.saveState) {
+                comment.getLayers().forEach(function(layer) {
+                    if (layer.layerType == 'drawing') {
+                        comment.removeLayer(layer);
+                    }
+                });
+            }
+
+            comment.addLayer(drawing);
             window.map.MapCommentTool.stopDrawingMode();
-            return true;
+            // render text to image
+            self.textRenderingCanvas = L.canvas({padding: 0});
+            self.textRenderingCanvas.addTo(map);
+            var ctx = self.textRenderingCanvas._ctx;
+
+            comment.getLayers().forEach(function(layer) {
+                if (layer.layerType == 'textDrawing') {
+                    comment.removeLayer(layer);
+                }
+            });
+
+            comment.getLayers().forEach(function(layer) {
+                if (layer.layerType == 'textArea') {
+                    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clearing the canvas, just in case. Might not actually be necessary.
+                    ctx.font = "40px monospace";
+                    var splitText = layer.textVal.split("\n");
+                    var lineNo = 0;
+                    var lineHeight = 45;
+                    splitText.forEach(function(textLine) {
+                        ctx.fillText(textLine, layer.pos.x - 6, layer.pos.y + 29 + lineNo * lineHeight); // figure out the relationship between this offset and the font size....
+                        console.log(layer);
+                        lineNo++;
+                    });
+
+                    var img = ctx.canvas.toDataURL("data:image/png");
+                    var mapBounds = map.getBounds();
+                    var imageBounds = [[mapBounds._northEast.lat,mapBounds._northEast.lng], [mapBounds._southWest.lat,mapBounds._southWest.lng]];
+                    var newTextImageOverlay = L.imageOverlay(img, imageBounds);
+                    newTextImageOverlay.layerType = 'textDrawing';
+                    comment.addLayer(newTextImageOverlay);
+
+                }                
+            });
+
+            comment.saveState = true;            
+            return comment.saveState;
         },
 
         cancelDrawing: function(commentId) {
@@ -339,6 +440,7 @@
     MapCommentTool.Comments = { 
         
         list: [],
+        editingComment: {},
 
         saved: function(comment) {
             var self = this;
@@ -349,7 +451,6 @@
             var self = this;
             var comment = L.layerGroup();
             comment.saveState = false;
-
             comment.id = window.map.MapCommentTool.Util.generateGUID();
 
             self.list.push(comment);
@@ -377,9 +478,7 @@
                 x: x_true,
                 y: y_true,
             };
-
         },
-
     };
 
     MapCommentTool.Tools = {
@@ -389,27 +488,52 @@
 
         on: function() {
             var self = this;
-            self.toolList.forEach(function(tool) {
-                self[tool].setListeners();
-            });
-
             self.setCurrentTool(self.defaultTool);
         
-            // initialize tools
+            // initialize textAreas
+            var comment = window.map.MapCommentTool.Comments.editingComment;
+            comment.getLayers().forEach(function(layer) {
+                if (layer.layerType == 'textArea') {
+                    layer.addTo(map);
+                    var myIcon = L.divIcon({className: 'text-comment-div', html: '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="text-comment-input" maxlength="300"></textarea>'});
+                    layer.setIcon(myIcon);
+                    layer._icon.children[0].value = layer.textVal;
+                    layer._icon.children[0].addEventListener('input', function() {
+                        layer._icon.children[0].rows = (layer._icon.children[0].value.match(/\n/g) || []).length + 1;
+                        var lengths = layer._icon.children[0].value.split('\n').map(function(line) {
+                            return line.length;
+                        });
+                        layer._icon.children[0].cols = Math.max.apply(null, lengths);
+                    });
+                    layer._icon.children[0].rows = (layer._icon.children[0].value.match(/\n/g) || []).length + 1;
+                    var lengths = layer._icon.children[0].value.split('\n').map(function(line) {
+                        return line.length;
+                    });
+                    layer._icon.children[0].cols = Math.max.apply(null, lengths);
+                }
+            });
         },
 
         off: function() {
-            // turn tools off
+            var self = this;
+            self[self.currentTool].terminate();
+            self.currentTool = '';
+            window.map.off('click', self.handleText);
+
         },
 
         setCurrentTool: function(tool) {
             var self = this;
+            if (self.currentTool) {
+                self[self.currentTool].terminate();
+            }
             self.currentTool = tool;
             // set canvas class
             self.toolList.forEach(function(toolname) {
                 window.map.MapCommentTool.drawingCanvas._container.classList.remove("drawing-canvas-" + toolname);
             });
             window.map.MapCommentTool.drawingCanvas._container.classList.add("drawing-canvas-" + tool);
+            self[self.currentTool].initialize();
         },
 
         pen: {
@@ -421,6 +545,13 @@
             mouseY: 0,
             lastX: -1,
             lastY: -1,
+            initialize: function() {
+                var self = this;
+                self.setListeners();
+            },
+            terminate: function() {
+                // tear down environment
+            },
             drawLine: function(ctx,x,y,size) {
                 var self = this;
                 //operation properties
@@ -473,11 +604,8 @@
                         self.lastX=-1;
                         self.lastY=-1;
                     }
-
                 }, false);
-
             }
-
         },
 
         eraser: {
@@ -489,6 +617,13 @@
             mouseY: 0,
             lastX: -1,
             lastY: -1,
+            initialize: function() {
+                var self = this;
+                self.setListeners();
+            },
+            terminate: function() {
+                // tear down environment
+            },
             drawLine: function(ctx,x,y,size) {
                 var self = this;
                 //operation properties
@@ -541,16 +676,75 @@
                         self.lastX=-1;
                         self.lastY=-1;
                     }
-
                 }, false);
-
             }
         },
 
         text: {
             name: 'text',
-            setListeners: function(){
+            state: 'addMarker',
+            initialize: function() {
+                var self = this;
+                self.setListeners();
+                map.getPane('markerPane').style['z-index'] = 600;
 
+            },
+            terminate: function() {
+                var self = this;
+                var comment = window.map.MapCommentTool.Comments.editingComment;
+
+                map.getPane('markerPane').style['z-index'] = 300;
+                // save all text values to icon "textVal"s
+                comment.getLayers().forEach(function(layer) {
+                    if (layer.layerType == 'textArea') {
+                        layer.textVal  = layer._icon.children[0].value;
+                    }
+                });
+
+                state = 'addMarker';
+            },
+            handleText: function(e) {
+                var self = window.map.MapCommentTool.Tools.text;
+                var comment = window.map.MapCommentTool.Comments.editingComment;
+                var canvas = window.map.MapCommentTool.drawingCanvas._container;
+                var marker;
+                if (e.originalEvent.explicitOriginalTarget.nodeName == 'CANVAS') {
+                    if (window.map.MapCommentTool.Tools.currentTool == 'text' && self.state == 'addMarker') {
+                        var myIcon = L.divIcon({className: 'text-comment-div', html: '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="text-comment-input" maxlength="300"></textarea>'});
+                        self.marker = L.marker(e.latlng, {icon: myIcon});
+                        comment.addLayer(self.marker);
+                        self.marker.layerType = 'textArea';
+                        self.marker.pos = window.map.MapCommentTool.Util.getMousePos(canvas, e.originalEvent.clientX, e.originalEvent.clientY);
+                        self.marker.addTo(map);
+
+                        // autosizing text boxes...
+                        // this is literally like the worst possible solution.
+                        self.marker._icon.children[0].addEventListener('input', function() {
+                            self.marker._icon.children[0].rows = (self.marker._icon.children[0].value.match(/\n/g) || []).length + 1;
+                            var lengths = self.marker._icon.children[0].value.split('\n').map(function(line) {
+                                return line.length;
+                            });
+                            self.marker._icon.children[0].cols = Math.max.apply(null, lengths);
+                        });
+
+                        self.marker._icon.children[0].focus();
+                        self.state = 'saveMarker';
+                    }
+                    else if (window.map.MapCommentTool.Tools.currentTool == 'text' && self.state == 'saveMarker') {
+                        // delete all empty text boxes.
+                        ///.....
+                        self.marker = '';
+                        self.state = 'addMarker';
+                    }
+                } else if (e.originalEvent.explicitOriginalTarget.nodeName == 'BUTTON') {
+                    self.state = 'addMarker';
+                }
+            },
+            setListeners: function(){
+                var self = this;
+                var canvas = window.map.MapCommentTool.drawingCanvas._container;
+                var context = canvas.getContext('2d');
+                window.map.on('click', self.handleText);
             },
         }
 
