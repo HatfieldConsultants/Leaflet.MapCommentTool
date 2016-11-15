@@ -125,6 +125,14 @@
             window.map.MapCommentTool.Comments.list.forEach(function(comment){
                 comment.addTo(map);
             });
+
+            window.map.MapCommentTool.Comments.list.forEach(function(comment){
+                comment.getLayers().forEach(function(layer) {
+                    if (layer.layerType == 'textArea') {
+                        layer.removeFrom(map);
+                    }
+                });
+            });
         }
     };
 
@@ -490,25 +498,26 @@
                     var myIcon = L.divIcon({className: 'text-comment-div', html: '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="text-comment-input" maxlength="300"></textarea>'});
                     layer.setIcon(myIcon);
                     layer._icon.children[0].value = layer.textVal;
+                    layer._icon.children[0].addEventListener('input', function() {
+                        layer._icon.children[0].rows = (layer._icon.children[0].value.match(/\n/g) || []).length + 1;
+                        var lengths = layer._icon.children[0].value.split('\n').map(function(line) {
+                            return line.length;
+                        });
+                        layer._icon.children[0].cols = Math.max.apply(null, lengths);
+                    });
+                    layer._icon.children[0].rows = (layer._icon.children[0].value.match(/\n/g) || []).length + 1;
+                    var lengths = layer._icon.children[0].value.split('\n').map(function(line) {
+                        return line.length;
+                    });
+                    layer._icon.children[0].cols = Math.max.apply(null, lengths);
                 }
             });
-
-
         },
 
         off: function() {
             var self = this;
             self[self.currentTool].terminate();
             self.currentTool = '';
-
-            // initialize textAreas
-            var comment = window.map.MapCommentTool.Comments.editingComment;
-            comment.getLayers().forEach(function(layer) {
-                if (layer.layerType == 'textArea') {
-                    layer.removeFrom(map);
-                }
-            });
-
             window.map.off('click', self.handleText);
 
         },
