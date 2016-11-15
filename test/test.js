@@ -212,17 +212,19 @@ describe('Drawn Comment Creation, Cancellation, and Saving', function() {
 		// ........ DRAW ON THE CANVAS ......... //
 
 		it('comment successfully saved', function() {
-			assert.isOk(map.MapCommentTool.ControlBar.saveDrawing(comment.id), 'saveDrawing() returns true');
-			assert.equal(map.MapCommentTool.Comments.list.length, 2, 'There are now 2 comments');
+			assert.isOk(map.MapCommentTool.ControlBar.cancelDrawing(comment.id), 'saveDrawing() returns true');
+			assert.equal(map.MapCommentTool.Comments.list.length, 1, 'There is now 1 comment');
 			var listComments = document.getElementsByClassName("comment-list-li");
-			assert.equal(listComments.length, 2, 'There are now 2 comments in the view');
-			assert.equal(map.MapCommentTool.Comments.list[1].id, comment.id, 'The comment id has been saved successfully');
+			assert.equal(listComments.length, 1, 'There is now 1 comment in the view');
 			assert.equal(document.getElementsByTagName('canvas').length, 0, 'There are now 0 canvas elements present on the page');
 			assert.equal(map.MapCommentTool.currentMode, 'controlBarHome', 'Mode is now set to "map"');
 			assert.equal(map.MapCommentTool.ControlBar.currentView, 'home');
 
 			var visibleComments = document.getElementsByClassName("leaflet-image-layer");
-			assert.equal(visibleComments.length, 2, 'there are 2 image layers present on the map');
+			assert.equal(visibleComments.length, 1, 'there is 1 image layer present on the map');
 		});
+	});
+
+	describe('Drawn Comment Creation w/ Save', function() {
 	});
 });

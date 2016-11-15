@@ -414,6 +414,7 @@
 
                 }                
             });
+            self.textRenderingCanvas.removeFrom(map);
 
             comment.saveState = true;            
             return comment.saveState;
