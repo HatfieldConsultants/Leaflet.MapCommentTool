@@ -206,13 +206,20 @@ describe('Drawn Comment Creation, Cancellation, and Saving', function() {
 			assert.equal(map.MapCommentTool.ControlBar.currentView, 'drawing', 'View set to "drawing"');
 		});
 
-		it('check that pen tool is set by default');
+		it('check that pen tool is set by default', function() {
+			assert.equal(map.MapCommentTool.Tools.currentTool, 'pen');
+		});
 
-		it('draw several strokes on the canvas');
-		// ........ DRAW ON THE CANVAS ......... //
+		it('draw several strokes on the canvas', function() {
+			var canvas = map.MapCommentTool.drawingCanvas._container;
+			var ctx = map.MapCommentTool.drawingCanvas._ctx;
+		 	ctx.rect(20,20,150,100);
+			assert.equal(ctx.stroke(), undefined, 'Stroke successfully executed');
+		});
 
-		it('comment successfully saved', function() {
-			assert.isOk(map.MapCommentTool.ControlBar.cancelDrawing(comment.id), 'saveDrawing() returns true');
+
+		it('comment successfully cancelled', function() {
+			assert.isOk(map.MapCommentTool.ControlBar.cancelDrawing(comment.id), 'cancelDrawing() returns true');
 			assert.equal(map.MapCommentTool.Comments.list.length, 1, 'There is now 1 comment');
 			var listComments = document.getElementsByClassName("comment-list-li");
 			assert.equal(listComments.length, 1, 'There is now 1 comment in the view');
@@ -226,5 +233,55 @@ describe('Drawn Comment Creation, Cancellation, and Saving', function() {
 	});
 
 	describe('Drawn Comment Creation w/ Save', function() {
+		var comment;
+
+		it('initially there are no canvas layers', function() {
+			assert.equal(document.getElementsByTagName('canvas').length, 0, 'There are 0 canvas elements present on the page');
+		});
+
+		it('initially there is 1 comment in Comments.list and on the control bar', function() {
+			assert.equal(map.MapCommentTool.Comments.list.length, 1, 'There are 1 comments in Comments.list');
+			
+			var listComments = document.getElementsByClassName("comment-list-li");
+			assert.equal(listComments.length, 1, 'There is 1 comment in the view');
+		});
+
+		it('"startNewComment()" creates a comment and appends it to Comments.list', function() {
+			comment = map.MapCommentTool.ControlBar.startNewComment();
+			assert.isOk(comment, 'startNewComment() successfully returned');
+			assert.equal(map.MapCommentTool.Comments.list.length, 2, 'There are now 2 comments');
+			assert.isNotOk(map.MapCommentTool.Comments.saved(comment), 'comment has not yet been saved');
+		});
+
+		it('drawing mode has been successfully initiated', function() {
+			assert.equal(map.MapCommentTool.currentMode, 'drawing', 'Mode set to "drawing"');
+			assert.equal(document.getElementsByTagName('canvas').length, 1, 'There is 1 element present on the page');
+			assert.equal(map.MapCommentTool.ControlBar.currentView, 'drawing', 'View set to "drawing"');
+		});
+
+		it('check that pen tool is set by default', function() {
+			assert.equal(map.MapCommentTool.Tools.currentTool, 'pen');
+		});
+
+		it('draw several strokes on the canvas', function() {
+			var canvas = map.MapCommentTool.drawingCanvas._container;
+			var ctx = map.MapCommentTool.drawingCanvas._ctx;
+		 	ctx.rect(20,20,150,100);
+			assert.equal(ctx.stroke(), undefined, 'Stroke successfully executed');
+		});
+
+
+		it('comment successfully saved', function() {
+			assert.isOk(map.MapCommentTool.ControlBar.saveDrawing(comment.id), 'saveDrawing() returns true');
+			assert.equal(map.MapCommentTool.Comments.list.length, 2, 'There are now 2 comments');
+			var listComments = document.getElementsByClassName("comment-list-li");
+			assert.equal(listComments.length, 2, 'There are now 2 comments in the view');
+			assert.equal(document.getElementsByTagName('canvas').length, 0, 'There are now 0 canvas elements present on the page');
+			assert.equal(map.MapCommentTool.currentMode, 'controlBarHome', 'Mode is now set to "map"');
+			assert.equal(map.MapCommentTool.ControlBar.currentView, 'home');
+
+			var visibleComments = document.getElementsByClassName("leaflet-image-layer");
+			assert.equal(visibleComments.length, 2, 'there are 2 image layers present on the map');
+		});
 	});
 });

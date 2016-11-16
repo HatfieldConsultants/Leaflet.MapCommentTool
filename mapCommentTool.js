@@ -394,24 +394,27 @@
 
             comment.getLayers().forEach(function(layer) {
                 if (layer.layerType == 'textArea') {
-                    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clearing the canvas, just in case. Might not actually be necessary.
-                    ctx.font = "40px monospace";
-                    var splitText = layer.textVal.split("\n");
-                    var lineNo = 0;
-                    var lineHeight = 45;
-                    splitText.forEach(function(textLine) {
-                        ctx.fillText(textLine, layer.pos.x - 6, layer.pos.y + 29 + lineNo * lineHeight); // figure out the relationship between this offset and the font size....
-                        console.log(layer);
-                        lineNo++;
-                    });
 
-                    var img = ctx.canvas.toDataURL("data:image/png");
-                    var mapBounds = map.getBounds();
-                    var imageBounds = [[mapBounds._northEast.lat,mapBounds._northEast.lng], [mapBounds._southWest.lat,mapBounds._southWest.lng]];
-                    var newTextImageOverlay = L.imageOverlay(img, imageBounds);
-                    newTextImageOverlay.layerType = 'textDrawing';
-                    comment.addLayer(newTextImageOverlay);
+                    if (layer.textVal.replace(/\s/g, "").length === 0) {
+                        comment.removeLayer(layer);
+                    } else {
+                        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clearing the canvas, just in case. Might not actually be necessary.
+                        ctx.font = "40px monospace";
+                        var splitText = layer.textVal.split("\n");
+                        var lineNo = 0;
+                        var lineHeight = 42;
+                        splitText.forEach(function(textLine) {
+                            ctx.fillText(textLine, layer.pos.x - 6, layer.pos.y + 26 + lineNo * lineHeight); // figure out the relationship between this offset and the font size....
+                            lineNo++;
+                        });
 
+                        var img = ctx.canvas.toDataURL("data:image/png");
+                        var mapBounds = map.getBounds();
+                        var imageBounds = [[mapBounds._northEast.lat,mapBounds._northEast.lng], [mapBounds._southWest.lat,mapBounds._southWest.lng]];
+                        var newTextImageOverlay = L.imageOverlay(img, imageBounds);
+                        newTextImageOverlay.layerType = 'textDrawing';
+                        comment.addLayer(newTextImageOverlay);
+                    }
                 }                
             });
             self.textRenderingCanvas.removeFrom(map);
@@ -717,15 +720,21 @@
                         self.marker.layerType = 'textArea';
                         self.marker.pos = window.map.MapCommentTool.Util.getMousePos(canvas, e.originalEvent.clientX, e.originalEvent.clientY);
                         self.marker.addTo(map);
+                        self.marker.listenerSet = false;
 
                         // autosizing text boxes...
                         // this is literally like the worst possible solution.
-                        self.marker._icon.children[0].addEventListener('input', function() {
-                            self.marker._icon.children[0].rows = (self.marker._icon.children[0].value.match(/\n/g) || []).length + 1;
-                            var lengths = self.marker._icon.children[0].value.split('\n').map(function(line) {
-                                return line.length;
-                            });
-                            self.marker._icon.children[0].cols = Math.max.apply(null, lengths);
+                        comment.getLayers().forEach(function(layer) {
+                            if (layer.layerType == 'textArea' && !layer.listenerSet) {
+                                layer._icon.children[0].addEventListener('input', function() {
+                                    layer._icon.children[0].rows = (layer._icon.children[0].value.match(/\n/g) || []).length + 1;
+                                    var lengths = layer._icon.children[0].value.split('\n').map(function(line) {
+                                        return line.length;
+                                    });
+                                    layer._icon.children[0].cols = Math.max.apply(null, lengths);
+                                });
+                                layer.listenerSet = true;
+                            }
                         });
 
                         self.marker._icon.children[0].focus();
