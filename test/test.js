@@ -86,6 +86,9 @@ describe('Control Bar Show/Hide', function() {
 
 });
 
+describe('Tool Selection Combinations', function() {
+	it('check default selection, and states when switching, including pen colour...');
+});
 
 describe('Empty Comment Creation, Cancellation, and Saving', function() {
 	describe ('Empty Comment Creation w/ Cancel', function() {
@@ -284,4 +287,8 @@ describe('Drawn Comment Creation, Cancellation, and Saving', function() {
 			assert.equal(visibleComments.length, 2, 'there are 2 image layers present on the map');
 		});
 	});
+});
+
+describe('Text Comment Creation, Cancellation, and Saving', function() {
+	it('yada yada yada'); // check for text position persistence... maybe also text area sizes??
 });
