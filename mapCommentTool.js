@@ -538,6 +538,7 @@
             });
             window.map.MapCommentTool.drawingCanvas._container.classList.add("drawing-canvas-" + tool);
             self[self.currentTool].initialize();
+            return tool;
         },
 
         pen: {

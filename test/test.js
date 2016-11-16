@@ -87,7 +87,43 @@ describe('Control Bar Show/Hide', function() {
 });
 
 describe('Tool Selection Combinations', function() {
-	it('check default selection, and states when switching, including pen colour...');
+	
+	function hasClass(element, cls) {
+	    return (' ' + element.className + ' ').indexOf(' ' + cls + ' ') > -1;
+	}
+
+	it('in new comment, default tool selection is "pen"', function() {
+		assert.isOk(map.MapCommentTool.ControlBar.show(), 'show() executed successfully');
+		assert.isOk(map.MapCommentTool.ControlBar.isVisible(), 'visibility state is visible');
+
+		comment = map.MapCommentTool.ControlBar.startNewComment();
+		assert.isOk(comment, 'startNewComment() successfully returned');
+		assert.equal(map.MapCommentTool.Tools.defaultTool, 'pen', 'default tool is set to pen');
+		assert.equal(map.MapCommentTool.Tools.currentTool, 'pen', 'currentTool tool is set to pen');
+
+		assert.isOk(hasClass(map.MapCommentTool.drawingCanvas._container, 'drawing-canvas-pen'), 'drawing canvas has pen class appended');
+		assert.isNotOk(hasClass(map.MapCommentTool.drawingCanvas._container, 'drawing-canvas-eraser'), 'drawing canvas has no eraser class appended');
+		assert.isNotOk(hasClass(map.MapCommentTool.drawingCanvas._container, 'drawing-canvas-text'), 'drawing canvas has no text class appended');		
+	});
+
+	it('setting tool to eraser', function() {
+		assert.isOk(map.MapCommentTool.Tools.setCurrentTool('eraser'), 'tool set to eraser');
+		assert.equal(map.MapCommentTool.Tools.currentTool, 'eraser', 'currentTool tool is set to eraser');
+		assert.isOk(hasClass(map.MapCommentTool.drawingCanvas._container, 'drawing-canvas-eraser'), 'drawing canvas has eraser class appended');
+		assert.isNotOk(hasClass(map.MapCommentTool.drawingCanvas._container, 'drawing-canvas-pen'), 'drawing canvas has no pen class appended');
+		assert.isNotOk(hasClass(map.MapCommentTool.drawingCanvas._container, 'drawing-canvas-text'), 'drawing canvas has no text class appended');
+	});
+
+	it('setting tool to text and cancelling comment', function() {
+		assert.isOk(map.MapCommentTool.Tools.setCurrentTool('text'), 'tool set to text');
+		assert.equal(map.MapCommentTool.Tools.currentTool, 'text', 'currentTool tool is set to text');
+		assert.isOk(hasClass(map.MapCommentTool.drawingCanvas._container, 'drawing-canvas-text'), 'drawing canvas has text class appended');
+		assert.isNotOk(hasClass(map.MapCommentTool.drawingCanvas._container, 'drawing-canvas-pen'), 'drawing canvas has no pen class appended');
+		assert.isNotOk(hasClass(map.MapCommentTool.drawingCanvas._container, 'drawing-canvas-eraser'), 'drawing canvas has no eraser class appended');
+
+		assert.isOk(map.MapCommentTool.ControlBar.cancelDrawing(comment.id), 'cancelDrawing() returns true');
+	});
+
 });
 
 describe('Empty Comment Creation, Cancellation, and Saving', function() {
