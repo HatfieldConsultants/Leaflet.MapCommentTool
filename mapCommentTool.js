@@ -712,7 +712,8 @@
                 var comment = window.map.MapCommentTool.Comments.editingComment;
                 var canvas = window.map.MapCommentTool.drawingCanvas._container;
                 var marker;
-                if (e.originalEvent.explicitOriginalTarget.nodeName == 'CANVAS') {
+                console.log(e);
+                if (e.originalEvent.target.nodeName == 'CANVAS') {
                     if (window.map.MapCommentTool.Tools.currentTool == 'text' && self.state == 'addMarker') {
                         var myIcon = L.divIcon({className: 'text-comment-div', html: '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="text-comment-input" maxlength="300"></textarea>'});
                         self.marker = L.marker(e.latlng, {icon: myIcon});
@@ -746,7 +747,7 @@
                         self.marker = '';
                         self.state = 'addMarker';
                     }
-                } else if (e.originalEvent.explicitOriginalTarget.nodeName == 'BUTTON') {
+                } else if (e.originalEvent.target.nodeName == 'BUTTON') {
                     self.state = 'addMarker';
                 }
             },
