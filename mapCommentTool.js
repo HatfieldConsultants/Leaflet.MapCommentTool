@@ -342,7 +342,14 @@
            
             var canvas = window.map.MapCommentTool.drawingCanvas._container;
             var context = canvas.getContext('2d');
-            var canvasTransformArray = canvas.style.transform.split(/,|\(|\)|px| /);
+            var canvasTransformArray;
+
+            // for phantomJS
+            if (map.MapCommentTool.PHANTOMTEST) {
+                canvasTransformArray = [0, 0];
+            } else {
+                canvasTransformArray = canvas.style.transform.split(/,|\(|\)|px| /);
+            }
 
             var imageObj = new Image();
             imageObj.onload = function() {
@@ -350,7 +357,7 @@
             };
 
             imageObj.src = image._image.src;                
-
+            return comment;
         },
 
         saveDrawing: function(commentId) {
@@ -394,29 +401,34 @@
 
             comment.getLayers().forEach(function(layer) {
                 if (layer.layerType == 'textArea') {
-                    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clearing the canvas, just in case. Might not actually be necessary.
-                    ctx.font = "40px monospace";
-                    var splitText = layer.textVal.split("\n");
-                    var lineNo = 0;
-                    var lineHeight = 45;
-                    splitText.forEach(function(textLine) {
-                        ctx.fillText(textLine, layer.pos.x - 6, layer.pos.y + 29 + lineNo * lineHeight); // figure out the relationship between this offset and the font size....
-                        console.log(layer);
-                        lineNo++;
-                    });
 
-                    var img = ctx.canvas.toDataURL("data:image/png");
-                    var mapBounds = map.getBounds();
-                    var imageBounds = [[mapBounds._northEast.lat,mapBounds._northEast.lng], [mapBounds._southWest.lat,mapBounds._southWest.lng]];
-                    var newTextImageOverlay = L.imageOverlay(img, imageBounds);
-                    newTextImageOverlay.layerType = 'textDrawing';
-                    comment.addLayer(newTextImageOverlay);
+                    if (layer.textVal.replace(/\s/g, "").length === 0) {
+                        comment.removeLayer(layer);
+                    } else {
+                        layer.isNew = false;
+                        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clearing the canvas, just in case. Might not actually be necessary.
+                        ctx.font = "40px monospace";
+                        var splitText = layer.textVal.split("\n");
+                        var lineNo = 0;
+                        var lineHeight = 42;
+                        splitText.forEach(function(textLine) {
+                            ctx.fillText(textLine, layer.pos.x - 6, layer.pos.y + 26 + lineNo * lineHeight); // figure out the relationship between this offset and the font size....
+                            lineNo++;
+                        });
 
+                        var img = ctx.canvas.toDataURL("data:image/png");
+                        var mapBounds = map.getBounds();
+                        var imageBounds = [[mapBounds._northEast.lat,mapBounds._northEast.lng], [mapBounds._southWest.lat,mapBounds._southWest.lng]];
+                        var newTextImageOverlay = L.imageOverlay(img, imageBounds);
+                        newTextImageOverlay.layerType = 'textDrawing';
+                        comment.addLayer(newTextImageOverlay);
+                    }
                 }                
             });
+            self.textRenderingCanvas.removeFrom(map);
 
             comment.saveState = true;            
-            return comment.saveState;
+            return comment;
         },
 
         cancelDrawing: function(commentId) {
@@ -425,10 +437,21 @@
             });
             var comment = window.map.MapCommentTool.Comments.list[commentIndex];
             if (!comment.saveState) {
+                comment.getLayers().forEach(function(layer) {
+                    if (layer.layerType == "textArea") {
+                        comment.removeLayer(layer);
+                        layer.removeFrom(map);
+                    }
+                });
                 window.map.MapCommentTool.Comments.list.pop();
             }
             else {
-                // throw out changes...
+                comment.getLayers().forEach(function(layer) {
+                    if (layer.layerType == "textArea" && layer.isNew) {
+                        comment.removeLayer(layer);
+                        layer.removeFrom(map);
+                    }
+                });
             }
             window.map.MapCommentTool.stopDrawingMode();
             return true;
@@ -468,10 +491,10 @@
             return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
         },
 
-        getMousePos: function(canvas, x, y) {
+        getMousePos: function(x, y) {
             // this parses stuff like "translate3d(-1257px, -57px, 0px)" and turns it into an array like...
             // [ "translate3d", "-1257", "", "", "-57", "", "", "0", "", "" ]
-            var canvasTransformArray = canvas.style.transform.split(/,|\(|\)|px| /);
+            var canvasTransformArray = window.map.MapCommentTool.drawingCanvas._container.style.transform.split(/,|\(|\)|px| /);
             var x_true = x + (parseFloat(canvasTransformArray[1]));
             var y_true = y + (parseFloat(canvasTransformArray[4]));
             return {
@@ -534,6 +557,7 @@
             });
             window.map.MapCommentTool.drawingCanvas._container.classList.add("drawing-canvas-" + tool);
             self[self.currentTool].initialize();
+            return tool;
         },
 
         pen: {
@@ -590,7 +614,7 @@
 
                 canvas.addEventListener('mousemove', function(e) {
                     if (self.stroke && window.map.MapCommentTool.Tools.currentTool == 'pen') {
-                        var pos = window.map.MapCommentTool.Util.getMousePos(canvas, e.clientX, e.clientY);
+                        var pos = window.map.MapCommentTool.Util.getMousePos(e.clientX, e.clientY);
                         self.mouseX = pos.x;
                         self.mouseY = pos.y;
                         self.drawLine(context , self.mouseX, self.mouseY, 3);
@@ -662,7 +686,7 @@
 
                 canvas.addEventListener('mousemove', function(e) {
                     if (self.stroke && window.map.MapCommentTool.Tools.currentTool == 'eraser') {
-                        var pos = window.map.MapCommentTool.Util.getMousePos(canvas, e.clientX, e.clientY);
+                        var pos = window.map.MapCommentTool.Util.getMousePos(e.clientX, e.clientY);
                         self.mouseX = pos.x;
                         self.mouseY = pos.y;
                         self.drawLine(context , self.mouseX, self.mouseY, 35);
@@ -708,23 +732,36 @@
                 var comment = window.map.MapCommentTool.Comments.editingComment;
                 var canvas = window.map.MapCommentTool.drawingCanvas._container;
                 var marker;
-                if (e.originalEvent.explicitOriginalTarget.nodeName == 'CANVAS') {
+                if (e.originalEvent.target.nodeName == 'CANVAS' || e.originalEvent.target.nodeName == "DIV") {
                     if (window.map.MapCommentTool.Tools.currentTool == 'text' && self.state == 'addMarker') {
                         var myIcon = L.divIcon({className: 'text-comment-div', html: '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="text-comment-input" maxlength="300"></textarea>'});
                         self.marker = L.marker(e.latlng, {icon: myIcon});
                         comment.addLayer(self.marker);
                         self.marker.layerType = 'textArea';
-                        self.marker.pos = window.map.MapCommentTool.Util.getMousePos(canvas, e.originalEvent.clientX, e.originalEvent.clientY);
+                        self.marker.isNew = true;
+                        
+                        // because of phantomJS
+                        if (e.originalEvent.target.nodeName == "DIV") {
+                            self.marker.pos = { x: 50, y: 100 };
+                        } else {
+                            self.marker.pos = window.map.MapCommentTool.Util.getMousePos(e.originalEvent.clientX, e.originalEvent.clientY);
+                        }
                         self.marker.addTo(map);
+                        self.marker.listenerSet = false;
 
                         // autosizing text boxes...
                         // this is literally like the worst possible solution.
-                        self.marker._icon.children[0].addEventListener('input', function() {
-                            self.marker._icon.children[0].rows = (self.marker._icon.children[0].value.match(/\n/g) || []).length + 1;
-                            var lengths = self.marker._icon.children[0].value.split('\n').map(function(line) {
-                                return line.length;
-                            });
-                            self.marker._icon.children[0].cols = Math.max.apply(null, lengths);
+                        comment.getLayers().forEach(function(layer) {
+                            if (layer.layerType == 'textArea' && !layer.listenerSet) {
+                                layer._icon.children[0].addEventListener('input', function() {
+                                    layer._icon.children[0].rows = (layer._icon.children[0].value.match(/\n/g) || []).length + 1;
+                                    var lengths = layer._icon.children[0].value.split('\n').map(function(line) {
+                                        return line.length;
+                                    });
+                                    layer._icon.children[0].cols = Math.max.apply(null, lengths);
+                                });
+                                layer.listenerSet = true;
+                            }
                         });
 
                         self.marker._icon.children[0].focus();
@@ -736,7 +773,7 @@
                         self.marker = '';
                         self.state = 'addMarker';
                     }
-                } else if (e.originalEvent.explicitOriginalTarget.nodeName == 'BUTTON') {
+                } else if (e.originalEvent.target.nodeName == 'BUTTON') {
                     self.state = 'addMarker';
                 }
             },
