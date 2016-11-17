@@ -405,6 +405,7 @@
                     if (layer.textVal.replace(/\s/g, "").length === 0) {
                         comment.removeLayer(layer);
                     } else {
+                        layer.isNew = false;
                         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clearing the canvas, just in case. Might not actually be necessary.
                         ctx.font = "40px monospace";
                         var splitText = layer.textVal.split("\n");
@@ -436,10 +437,21 @@
             });
             var comment = window.map.MapCommentTool.Comments.list[commentIndex];
             if (!comment.saveState) {
+                comment.getLayers().forEach(function(layer) {
+                    if (layer.layerType == "textArea") {
+                        comment.removeLayer(layer);
+                        layer.removeFrom(map);
+                    }
+                });
                 window.map.MapCommentTool.Comments.list.pop();
             }
             else {
-                // throw out changes...
+                comment.getLayers().forEach(function(layer) {
+                    if (layer.layerType == "textArea" && layer.isNew) {
+                        comment.removeLayer(layer);
+                        layer.removeFrom(map);
+                    }
+                });
             }
             window.map.MapCommentTool.stopDrawingMode();
             return true;
@@ -726,6 +738,7 @@
                         self.marker = L.marker(e.latlng, {icon: myIcon});
                         comment.addLayer(self.marker);
                         self.marker.layerType = 'textArea';
+                        self.marker.isNew = true;
                         
                         // because of phantomJS
                         if (e.originalEvent.target.nodeName == "DIV") {
