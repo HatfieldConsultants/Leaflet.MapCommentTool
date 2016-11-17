@@ -342,7 +342,14 @@
            
             var canvas = window.map.MapCommentTool.drawingCanvas._container;
             var context = canvas.getContext('2d');
-            var canvasTransformArray = canvas.style.transform.split(/,|\(|\)|px| /);
+            var canvasTransformArray;
+
+            // for phantomJS
+            if (map.MapCommentTool.PHANTOMTEST) {
+                canvasTransformArray = [0, 0];
+            } else {
+                canvasTransformArray = canvas.style.transform.split(/,|\(|\)|px| /);
+            }
 
             var imageObj = new Image();
             imageObj.onload = function() {
@@ -350,7 +357,7 @@
             };
 
             imageObj.src = image._image.src;                
-
+            return comment;
         },
 
         saveDrawing: function(commentId) {
@@ -420,7 +427,7 @@
             self.textRenderingCanvas.removeFrom(map);
 
             comment.saveState = true;            
-            return comment.saveState;
+            return comment;
         },
 
         cancelDrawing: function(commentId) {
@@ -472,10 +479,10 @@
             return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
         },
 
-        getMousePos: function(canvas, x, y) {
+        getMousePos: function(x, y) {
             // this parses stuff like "translate3d(-1257px, -57px, 0px)" and turns it into an array like...
             // [ "translate3d", "-1257", "", "", "-57", "", "", "0", "", "" ]
-            var canvasTransformArray = canvas.style.transform.split(/,|\(|\)|px| /);
+            var canvasTransformArray = window.map.MapCommentTool.drawingCanvas._container.style.transform.split(/,|\(|\)|px| /);
             var x_true = x + (parseFloat(canvasTransformArray[1]));
             var y_true = y + (parseFloat(canvasTransformArray[4]));
             return {
@@ -595,7 +602,7 @@
 
                 canvas.addEventListener('mousemove', function(e) {
                     if (self.stroke && window.map.MapCommentTool.Tools.currentTool == 'pen') {
-                        var pos = window.map.MapCommentTool.Util.getMousePos(canvas, e.clientX, e.clientY);
+                        var pos = window.map.MapCommentTool.Util.getMousePos(e.clientX, e.clientY);
                         self.mouseX = pos.x;
                         self.mouseY = pos.y;
                         self.drawLine(context , self.mouseX, self.mouseY, 3);
@@ -667,7 +674,7 @@
 
                 canvas.addEventListener('mousemove', function(e) {
                     if (self.stroke && window.map.MapCommentTool.Tools.currentTool == 'eraser') {
-                        var pos = window.map.MapCommentTool.Util.getMousePos(canvas, e.clientX, e.clientY);
+                        var pos = window.map.MapCommentTool.Util.getMousePos(e.clientX, e.clientY);
                         self.mouseX = pos.x;
                         self.mouseY = pos.y;
                         self.drawLine(context , self.mouseX, self.mouseY, 35);
@@ -713,13 +720,19 @@
                 var comment = window.map.MapCommentTool.Comments.editingComment;
                 var canvas = window.map.MapCommentTool.drawingCanvas._container;
                 var marker;
-                if (e.originalEvent.target.nodeName == 'CANVAS') {
+                if (e.originalEvent.target.nodeName == 'CANVAS' || e.originalEvent.target.nodeName == "DIV") {
                     if (window.map.MapCommentTool.Tools.currentTool == 'text' && self.state == 'addMarker') {
                         var myIcon = L.divIcon({className: 'text-comment-div', html: '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="text-comment-input" maxlength="300"></textarea>'});
                         self.marker = L.marker(e.latlng, {icon: myIcon});
                         comment.addLayer(self.marker);
                         self.marker.layerType = 'textArea';
-                        self.marker.pos = window.map.MapCommentTool.Util.getMousePos(canvas, e.originalEvent.clientX, e.originalEvent.clientY);
+                        
+                        // because of phantomJS
+                        if (e.originalEvent.target.nodeName == "DIV") {
+                            self.marker.pos = { x: 50, y: 100 };
+                        } else {
+                            self.marker.pos = window.map.MapCommentTool.Util.getMousePos(e.originalEvent.clientX, e.originalEvent.clientY);
+                        }
                         self.marker.addTo(map);
                         self.marker.listenerSet = false;
 

@@ -1,4 +1,5 @@
 var assert = chai.assert;
+window.map.MapCommentTool.PHANTOMTEST = true;
 
 describe('Map Loaded Properly', function() {
 
@@ -196,7 +197,7 @@ describe('Empty Comment Creation, Cancellation, and Saving', function() {
 
 		it('drawing mode has been successfully initiated', function() {
 			assert.equal(map.MapCommentTool.currentMode, 'drawing', 'Mode set to "drawing"');
-			assert.equal(document.getElementsByTagName('canvas').length, 1, 'There is 1 element present on the page');
+			assert.equal(document.getElementsByTagName('canvas').length, 1, 'There is 1 canvas element present on the page');
 			assert.equal(map.MapCommentTool.ControlBar.currentView, 'drawing', 'View set to "drawing"');
 		});
 
@@ -325,6 +326,110 @@ describe('Drawn Comment Creation, Cancellation, and Saving', function() {
 	});
 });
 
-describe('Text Comment Creation, Cancellation, and Saving', function() {
-	it('yada yada yada'); // check for text position persistence... maybe also text area sizes??
+describe('Text Comment Creation, Saving and Editing', function() {
+	describe('Text Comment Creation w/ Save', function() {
+		var comment;
+
+		it('initially there are no canvas layers', function() {
+			assert.equal(document.getElementsByTagName('canvas').length, 0, 'There are 0 canvas elements present on the page');
+		});
+
+		it('initially there are 2 comments in Comments.list and on the control bar', function() {
+			assert.equal(map.MapCommentTool.Comments.list.length, 2, 'There are 2 comments in Comments.list');
+			
+			var listComments = document.getElementsByClassName("comment-list-li");
+			assert.equal(listComments.length, 2, 'There are 2 comment in the view');
+		});
+
+		it('"startNewComment()" creates a comment and appends it to Comments.list', function() {
+			comment = map.MapCommentTool.ControlBar.startNewComment();
+			assert.isOk(comment, 'startNewComment() successfully returned');
+			assert.equal(map.MapCommentTool.Comments.list.length, 3, 'There are now 3 comments');
+			assert.isNotOk(map.MapCommentTool.Comments.saved(comment), 'comment has not yet been saved');
+		});
+
+		it('drawing mode has been successfully initiated', function() {
+			assert.equal(map.MapCommentTool.currentMode, 'drawing', 'Mode set to "drawing"');
+			assert.equal(document.getElementsByTagName('canvas').length, 1, 'There is 1 canvas element present on the page');
+			assert.equal(map.MapCommentTool.ControlBar.currentView, 'drawing', 'View set to "drawing"');
+		});
+
+		it('select text tool', function() {
+			assert.isOk(map.MapCommentTool.Tools.setCurrentTool('text'), 'tool set to "text"');
+			assert.equal(document.getElementsByTagName('textarea').length, 0, 'There are 0 textareas present on the page');
+		});
+
+		function click(el){
+		    var ev = document.createEvent("MouseEvent");
+		    ev.initMouseEvent(
+		        "click",
+		        true /* bubble */, true /* cancelable */,
+		        window, null,
+		        -1360, 326, 560, 264, /* coordinates */
+		        false, false, false, false, /* modifier keys */
+		        0 /*left*/, null
+		    );
+		    el.dispatchEvent(ev);
+		}
+	    
+		it('select a point on the canvas', function() {
+			click(map._container);
+		});
+
+		it('a text area has been added', function() {
+			assert.equal(document.getElementsByTagName('textarea').length, 1, 'There is 1 textarea present on the page');
+		});
+
+		it('fill text area with sample text and save', function() {
+			document.getElementsByTagName('textarea')[0].value = "this is\nsome sample\nmultiline text";
+			assert.isOk(map.MapCommentTool.ControlBar.saveDrawing(comment.id), 'comment successfully saved');
+		});
+
+		it('check that text image rendered and placed on map', function() {
+			var visibleComments = document.getElementsByClassName("leaflet-image-layer");
+			assert.equal(visibleComments.length, 4, 'there are 4 image layers present on the map (3 comments, 1 with a text image)');
+		});
+
+	});
+
+	describe('Text Comment Edit w/ Cancel', function() {
+	    it('to be implemented');
+	});
+
+	describe('Text Comment Edit w/ Save', function() {
+		var comment;
+		var image;
+		var textLayer;
+
+	    it('start edit mode on comment', function() {
+	    	comment = map.MapCommentTool.Comments.list.slice(-1).pop();
+		    comment.getLayers().forEach(function(layer) {
+		        if (layer.layerType == 'drawing') {
+		            image = layer;
+		        }
+		        if (layer.layerType == 'textArea') {
+		            textLayer = layer;
+		        }
+		    });
+
+			assert.isOk(map.MapCommentTool.ControlBar.editComment(comment, image), 'successfully started edit mode on comment');
+			assert.isOk(map.MapCommentTool.Tools.setCurrentTool('text'), 'tool set to "text"');
+	    });
+
+	    it('text was saved and loaded correctly', function() {
+	    	assert.equal(textLayer.textVal, "this is\nsome sample\nmultiline text", 'text was saved correctly');
+	    	assert.equal(document.getElementsByTagName('textarea')[0].value, "this is\nsome sample\nmultiline text", 'text was loaded correctly');
+	    });
+
+		it('edit textArea and save', function() {
+			document.getElementsByTagName('textarea')[0].value += " wooo more text";
+			comment = map.MapCommentTool.ControlBar.saveDrawing(comment.id);
+			assert.isOk(comment, 'comment successfully saved');
+		});
+	    
+	    it('was saved correctly', function() {
+	    	assert.equal(map.MapCommentTool.Comments.list.slice(-1).pop().getLayers()[0].textVal, "this is\nsome sample\nmultiline text wooo more text", 'text was saved correctly');
+	    });		
+
+	});
 });
