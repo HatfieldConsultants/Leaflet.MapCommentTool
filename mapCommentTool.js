@@ -350,10 +350,15 @@
             } else {
                 canvasTransformArray = canvas.style.transform.split(/,|\(|\)|px| /);
             }
+            
+            var x_offset = map.latLngToLayerPoint(image.getBounds()._southWest).x - map.latLngToLayerPoint(map.getBounds()._southWest).x;
+            var y_offset = map.latLngToLayerPoint(image.getBounds()._northEast).y - map.latLngToLayerPoint(map.getBounds()._northEast).y;
+            console.log(x_offset);
+            console.log(y_offset);
 
             var imageObj = new Image();
             imageObj.onload = function() {
-                context.drawImage(imageObj, (parseFloat(canvasTransformArray[1])), (parseFloat(canvasTransformArray[4])));
+                context.drawImage(imageObj, (parseFloat(canvasTransformArray[1]) + x_offset), (parseFloat(canvasTransformArray[4]) + y_offset));
             };
 
             imageObj.src = image._image.src;                
