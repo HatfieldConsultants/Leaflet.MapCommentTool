@@ -335,7 +335,7 @@
         editComment: function(comment, image) {
             var self = this;
             // fly to comment
-            map.flyToBounds(image._bounds, {animate: false});
+            //map.flyToBounds(image._bounds, {animate: false});
 
             // trigger drawing mode
             window.map.MapCommentTool.startDrawingMode(comment);
@@ -373,8 +373,10 @@
 
             var canvasDrawing = canvas.toDataURL("data:image/png");
 
-            var mapBounds = window.map.getBounds();
-            var imageBounds = [[mapBounds._northEast.lat,mapBounds._northEast.lng], [mapBounds._southWest.lat,mapBounds._southWest.lng]];
+            var imageBoundsXY = map.MapCommentTool.drawingCanvas._bounds;
+            var imageBoundsMinCoord = map.layerPointToLatLng(imageBoundsXY.min);
+            var imageBoundsMaxCoord = map.layerPointToLatLng(imageBoundsXY.max);
+            var imageBounds = [[imageBoundsMinCoord.lat,imageBoundsMinCoord.lng], [imageBoundsMaxCoord.lat, imageBoundsMaxCoord.lng]];
             var drawing = L.imageOverlay(canvasDrawing, imageBounds);
             drawing.layerType = 'drawing';
 
@@ -389,7 +391,7 @@
             comment.addLayer(drawing);
             window.map.MapCommentTool.stopDrawingMode();
             // render text to image
-            self.textRenderingCanvas = L.canvas({padding: 0});
+            self.textRenderingCanvas = L.canvas({padding: 0.4});
             self.textRenderingCanvas.addTo(map);
             var ctx = self.textRenderingCanvas._ctx;
 
@@ -417,8 +419,11 @@
                         });
 
                         var img = ctx.canvas.toDataURL("data:image/png");
-                        var mapBounds = map.getBounds();
-                        var imageBounds = [[mapBounds._northEast.lat,mapBounds._northEast.lng], [mapBounds._southWest.lat,mapBounds._southWest.lng]];
+                        var imageBoundsXY = self.textRenderingCanvas._bounds;
+                        var imageBoundsMinCoord = map.layerPointToLatLng(imageBoundsXY.min);
+                        var imageBoundsMaxCoord = map.layerPointToLatLng(imageBoundsXY.max);
+                        var imageBounds = [[imageBoundsMinCoord.lat,imageBoundsMinCoord.lng], [imageBoundsMaxCoord.lat, imageBoundsMaxCoord.lng]];
+                        var drawing = L.imageOverlay(canvasDrawing, imageBounds);
                         var newTextImageOverlay = L.imageOverlay(img, imageBounds);
                         newTextImageOverlay.layerType = 'textDrawing';
                         comment.addLayer(newTextImageOverlay);
