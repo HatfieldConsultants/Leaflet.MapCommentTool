@@ -381,6 +381,7 @@ describe('Text Comment Creation, Saving and Editing', function() {
 		});
 
 		it('fill text area with sample text and save', function() {
+		  	this.timeout(5000);
 			document.getElementsByTagName('textarea')[0].value = "this is\nsome sample\nmultiline text";
 			assert.isOk(map.MapCommentTool.ControlBar.saveDrawing(comment.id), 'comment successfully saved');
 		});
@@ -422,6 +423,7 @@ describe('Text Comment Creation, Saving and Editing', function() {
 	    });
 
 		it('edit textArea and save', function() {
+		  	this.timeout(5000);
 			document.getElementsByTagName('textarea')[0].value += " wooo more text";
 			comment = map.MapCommentTool.ControlBar.saveDrawing(comment.id);
 			assert.isOk(comment, 'comment successfully saved');
