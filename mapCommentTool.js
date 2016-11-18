@@ -351,14 +351,13 @@
                 canvasTransformArray = canvas.style.transform.split(/,|\(|\)|px| /);
             }
             
-            var x_offset = map.latLngToLayerPoint(image.getBounds()._southWest).x - map.latLngToLayerPoint(map.getBounds()._southWest).x;
-            var y_offset = map.latLngToLayerPoint(image.getBounds()._northEast).y - map.latLngToLayerPoint(map.getBounds()._northEast).y;
-            console.log(x_offset);
-            console.log(y_offset);
-
             var imageObj = new Image();
+
+            var newWidth = image._image.width * map.getZoomScale(map.getZoom(), comment.zoomLevel);
+            var newHeight = image._image.height * map.getZoomScale(map.getZoom(), comment.zoomLevel);
+
             imageObj.onload = function() {
-                context.drawImage(imageObj, (parseFloat(canvasTransformArray[1]) + x_offset), (parseFloat(canvasTransformArray[4]) + y_offset));
+                context.drawImage(imageObj, image._image._leaflet_pos.x, image._image._leaflet_pos.y, newWidth, newHeight);
             };
 
             imageObj.src = image._image.src;                
@@ -436,7 +435,7 @@
                 }                
             });
             self.textRenderingCanvas.removeFrom(map);
-
+            comment.zoomLevel = map.getZoom();
             comment.saveState = true;            
             return comment;
         },
