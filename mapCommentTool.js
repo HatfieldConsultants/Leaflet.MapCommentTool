@@ -70,9 +70,10 @@
             var controlContainer = map._controlContainer;
             controlContainer.insertBefore(container, controlContainer.firstChild);
 
+            self.mergeCanvas = document.createElement('canvas');
             self._map = map;
 
-            map.MapCommentTool = MapCommentTool;           
+            map.MapCommentTool = MapCommentTool;             
         },
 
         startDrawingMode: function(comment) {
@@ -80,11 +81,6 @@
             // spawn a drawing canvas
             self.drawingCanvas = L.canvas({padding: 0});
             self.drawingCanvas.addTo(map);
-
-            if (comment.saveState) {
-                // load canvas with previous image
-                // TODOOOOO
-            }
 
             // set canvas class
             self.drawingCanvas._container.className += " drawing-canvas";
@@ -365,6 +361,8 @@
         },
 
         saveDrawing: function(commentId) {
+            var self = this;
+
             var commentIndex = window.map.MapCommentTool.Comments.list.findIndex(function (comment) {
                         return comment.id === commentId;
             });
@@ -383,19 +381,78 @@
             var imageBounds = [[imageBoundsMinCoord.lat,imageBoundsMinCoord.lng], [imageBoundsMaxCoord.lat, imageBoundsMaxCoord.lng]];
             var drawing = L.imageOverlay(canvasDrawing, imageBounds);
             drawing.layerType = 'drawing';
-
+            var oldDrawing;
             if (comment.saveState) {
                 comment.getLayers().forEach(function(layer) {
                     if (layer.layerType == 'drawing') {
                         comment.removeLayer(layer);
+                        oldDrawing = layer;
                     }
                 });
             }
 
             comment.addLayer(drawing);
+
+            if (oldDrawing) {
+                var mergeCanvas = window.map.MapCommentTool.mergeCanvas;
+                document.body.appendChild(canvas);
+                var mergeContext = mergeCanvas.getContext('2d');
+
+                var newX_left = map.latLngToLayerPoint(map.getBounds()._southWest).x;
+                var newX_right = map.latLngToLayerPoint(map.getBounds()._northEast).x;
+                var newY_top = map.latLngToLayerPoint(map.getBounds()._northEast).y;
+                var newY_bottom = map.latLngToLayerPoint(map.getBounds()._southWest).y;
+                var oldX_left = map.latLngToLayerPoint(oldDrawing._bounds._southWest).x;
+                var oldX_right = map.latLngToLayerPoint(oldDrawing._bounds._northEast).x;
+                var oldY_top = map.latLngToLayerPoint(oldDrawing._bounds._northEast).y;
+                var oldY_bottom = map.latLngToLayerPoint(oldDrawing._bounds._southWest).y;
+                
+                var leftMost = Math.min(newX_left, oldX_left);
+                var rightMost = Math.max(newX_right, oldX_right);
+                var topMost = Math.min(newY_top, oldY_top);
+                var bottomMost = Math.max(newY_bottom, oldY_bottom);
+
+                mergeCanvas.height = bottomMost - topMost;
+                mergeCanvas.width = rightMost - leftMost;
+
+                var oldImageToCanvas = new Image();
+                var newImageToCanvas = new Image();
+                var mergedDrawingLayer;
+                var newSouthWest = map.layerPointToLatLng([leftMost, bottomMost]);
+                var newNorthEast = map.layerPointToLatLng([rightMost, topMost]);
+
+                var loadCount = 2;
+
+                oldImageToCanvas.onload = function() {
+                    mergeContext.drawImage(oldImageToCanvas, oldX_left - leftMost, oldY_top - topMost, oldX_right - oldX_left, oldY_bottom - oldY_top); 
+                    loadCount--;
+                    if (loadCount == 0) {
+                        var mergedDrawing = mergeCanvas.toDataURL("data:image/png");
+                        comment.removeLayer(drawing);
+                        mergedDrawingLayer = L.imageOverlay(mergedDrawing, [newSouthWest, newNorthEast]);
+                        comment.addLayer(mergedDrawingLayer);
+                        mergedDrawingLayer.layerType = 'drawing';
+                    }
+                };
+                newImageToCanvas.onload = function() {
+                    mergeContext.drawImage(newImageToCanvas, newX_left - leftMost, newY_top - topMost, newX_right - newX_left, newY_bottom - newY_top);
+                    loadCount--;
+                    if (loadCount == 0) {
+                        var mergedDrawing = mergeCanvas.toDataURL("data:image/png");
+                        comment.removeLayer(drawing);
+                        mergedDrawingLayer = L.imageOverlay(mergedDrawing, [newSouthWest, newNorthEast]);
+                        comment.addLayer(mergedDrawingLayer);
+                        mergedDrawingLayer.layerType = 'drawing';
+                    }
+               };
+              
+                oldImageToCanvas.src = oldDrawing._image.src;
+                newImageToCanvas.src = canvasDrawing;
+            }
+
             window.map.MapCommentTool.stopDrawingMode();
             // render text to image
-            self.textRenderingCanvas = L.canvas({padding: 0.4});
+            self.textRenderingCanvas = L.canvas({padding: 0});
             self.textRenderingCanvas.addTo(map);
             var ctx = self.textRenderingCanvas._ctx;
 
