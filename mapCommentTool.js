@@ -426,7 +426,7 @@
                 oldImageToCanvas.onload = function() {
                     mergeContext.drawImage(oldImageToCanvas, oldX_left - leftMost, oldY_top - topMost, oldX_right - oldX_left, oldY_bottom - oldY_top); 
                     loadCount--;
-                    if (loadCount == 0) {
+                    if (loadCount === 0) {
                         var mergedDrawing = mergeCanvas.toDataURL("data:image/png");
                         comment.removeLayer(drawing);
                         mergedDrawingLayer = L.imageOverlay(mergedDrawing, [newSouthWest, newNorthEast]);
@@ -437,7 +437,7 @@
                 newImageToCanvas.onload = function() {
                     mergeContext.drawImage(newImageToCanvas, newX_left - leftMost, newY_top - topMost, newX_right - newX_left, newY_bottom - newY_top);
                     loadCount--;
-                    if (loadCount == 0) {
+                    if (loadCount === 0) {
                         var mergedDrawing = mergeCanvas.toDataURL("data:image/png");
                         comment.removeLayer(drawing);
                         mergedDrawingLayer = L.imageOverlay(mergedDrawing, [newSouthWest, newNorthEast]);
