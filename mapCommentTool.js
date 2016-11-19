@@ -421,33 +421,26 @@
                 var newSouthWest = map.layerPointToLatLng([leftMost, bottomMost]);
                 var newNorthEast = map.layerPointToLatLng([rightMost, topMost]);
 
-                var loadCount = 2;
-
                 oldImageToCanvas.onload = function() {
-                    mergeContext.drawImage(oldImageToCanvas, oldX_left - leftMost, oldY_top - topMost, oldX_right - oldX_left, oldY_bottom - oldY_top); 
-                    loadCount--;
-                    if (loadCount === 0) {
-                        var mergedDrawing = mergeCanvas.toDataURL("data:image/png");
-                        comment.removeLayer(drawing);
-                        mergedDrawingLayer = L.imageOverlay(mergedDrawing, [newSouthWest, newNorthEast]);
-                        comment.addLayer(mergedDrawingLayer);
-                        mergedDrawingLayer.layerType = 'drawing';
-                    }
+                    mergeContext.drawImage(oldImageToCanvas, oldX_left - leftMost, oldY_top - topMost, oldX_right - oldX_left, oldY_bottom - oldY_top);
+                    newImageToCanvas.src = canvasDrawing;
                 };
                 newImageToCanvas.onload = function() {
+                    // to make the eraser tool work...
+                    mergeContext.globalCompositeOperation="destination-out";
+                    mergeContext.fillStyle="white";
+                    mergeContext.fillRect(newX_left - leftMost, newY_top - topMost, newX_right - newX_left, newY_bottom - newY_top);
+                    
+                    mergeContext.globalCompositeOperation="source-over";
                     mergeContext.drawImage(newImageToCanvas, newX_left - leftMost, newY_top - topMost, newX_right - newX_left, newY_bottom - newY_top);
-                    loadCount--;
-                    if (loadCount === 0) {
-                        var mergedDrawing = mergeCanvas.toDataURL("data:image/png");
-                        comment.removeLayer(drawing);
-                        mergedDrawingLayer = L.imageOverlay(mergedDrawing, [newSouthWest, newNorthEast]);
-                        comment.addLayer(mergedDrawingLayer);
-                        mergedDrawingLayer.layerType = 'drawing';
-                    }
+                    var mergedDrawing = mergeCanvas.toDataURL("data:image/png");
+                    comment.removeLayer(drawing);
+                    mergedDrawingLayer = L.imageOverlay(mergedDrawing, [newSouthWest, newNorthEast]);
+                    comment.addLayer(mergedDrawingLayer);
+                    mergedDrawingLayer.layerType = 'drawing';
                };
               
                 oldImageToCanvas.src = oldDrawing._image.src;
-                newImageToCanvas.src = canvasDrawing;
             }
 
             window.map.MapCommentTool.stopDrawingMode();
