@@ -298,18 +298,33 @@
                 self.cancelDrawing(commentId); 
             };
             var br2 = L.DomUtil.create('br', '', drawingView);
-            var penSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-cancel', drawingView);
-            penSelectButton.innerHTML = "Pen";
-            penSelectButton.onclick = function() {
-                window.map.MapCommentTool.Tools.setCurrentTool('pen'); 
+            var redPenSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-pen', drawingView);
+            var redPenSelectImage = L.DomUtil.create('img', '', redPenSelectButton);
+            redPenSelectImage.src = "red-pen.png";
+            redPenSelectButton.onclick = function() {
+                window.map.MapCommentTool.Tools.setCurrentTool('pen', {colour: 'red'}); 
             };
-            var eraserSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-cancel', drawingView);
-            eraserSelectButton.innerHTML = "Eraser";
+            var yellowPenSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-pen', drawingView);
+            var yellowPenSelectImage = L.DomUtil.create('img', '', yellowPenSelectButton);
+            yellowPenSelectImage.src = "yellow-pen.png";
+            yellowPenSelectButton.onclick = function() {
+                window.map.MapCommentTool.Tools.setCurrentTool('pen', {colour: 'yellow'}); 
+            };
+            var blackPenSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-pen', drawingView);
+            var blackPenSelectImage = L.DomUtil.create('img', '', blackPenSelectButton);
+            blackPenSelectImage.src = "black-pen.png";
+            blackPenSelectButton.onclick = function() {
+                window.map.MapCommentTool.Tools.setCurrentTool('pen', {colour: 'black'}); 
+            };
+            var eraserSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-eraser', drawingView);
+            var eraserSelectImage = L.DomUtil.create('img', '', eraserSelectButton);
+            eraserSelectImage.src = "eraser.png";
             eraserSelectButton.onclick = function() {
                 window.map.MapCommentTool.Tools.setCurrentTool('eraser'); 
             };
-            var textSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-cancel', drawingView);
-            textSelectButton.innerHTML = "Text";
+            var textSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-text', drawingView);
+            var textSelectImage = L.DomUtil.create('img', '', textSelectButton);
+            textSelectImage.src = "text.png";
             textSelectButton.onclick = function() {
                 window.map.MapCommentTool.Tools.setCurrentTool('text'); 
             };
@@ -570,7 +585,7 @@
 
         on: function() {
             var self = this;
-            self.setCurrentTool(self.defaultTool);
+            self.setCurrentTool(self.defaultTool, {colour: 'red'});
         
             // initialize textAreas
             var comment = window.map.MapCommentTool.Comments.editingComment;
@@ -604,36 +619,40 @@
 
         },
 
-        setCurrentTool: function(tool) {
+        setCurrentTool: function(tool, options) {
             var self = this;
             if (self.currentTool) {
                 self[self.currentTool].terminate();
             }
             self.currentTool = tool;
+            self[self.currentTool].initialize(options);
             // set canvas class
             self.toolList.forEach(function(toolname) {
                 window.map.MapCommentTool.drawingCanvas._container.classList.remove("drawing-canvas-" + toolname);
             });
             window.map.MapCommentTool.drawingCanvas._container.classList.add("drawing-canvas-" + tool);
-            self[self.currentTool].initialize();
             return tool;
         },
 
         pen: {
             name: 'pen',
-            color: '',
+            colour: 'red',
             strokeWidth: '',
             stroke: false,
             mouseX: 0,
             mouseY: 0,
             lastX: -1,
             lastY: -1,
-            initialize: function() {
+            initialize: function(options) {
                 var self = this;
+                self.colour = options.colour
+                window.map.MapCommentTool.drawingCanvas._container.classList.add("drawing-canvas-" + self.colour + "-pen");
+
                 self.setListeners();
             },
             terminate: function() {
-                // tear down environment
+                var self = this;
+                window.map.MapCommentTool.drawingCanvas._container.classList.remove("drawing-canvas-" + self.colour + "-pen");
             },
             drawLine: function(ctx,x,y,size) {
                 var self = this;
@@ -646,8 +665,7 @@
                     self.lastY=y;
                 }
 
-                r=250; g=0; b=0; a=255;
-                ctx.strokeStyle = "rgba("+r+","+g+","+b+","+(a/255)+")";
+                ctx.strokeStyle = self.colour;
                 ctx.lineCap = "round";
                 ctx.beginPath();
                 ctx.moveTo(self.lastX,self.lastY);
@@ -764,6 +782,7 @@
         },
 
         text: {
+            color: '',
             name: 'text',
             state: 'addMarker',
             initialize: function() {

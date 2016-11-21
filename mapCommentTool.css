@@ -139,8 +139,14 @@
 .controlbar-new {
 }
 
-.drawing-canvas-pen {
+.drawing-canvas-red-pen {
     cursor:url(red-pen.png) 0 50, auto;
+}
+.drawing-canvas-yellow-pen {
+    cursor:url(yellow-pen.png) 0 50, auto;
+}
+.drawing-canvas-black-pen {
+    cursor:url(black-pen.png) 0 50, auto;
 }
 
 .drawing-canvas-eraser {
@@ -166,4 +172,9 @@
 
 .text-comment-div {
     resize: both;
+}
+
+.controlbar-tool {
+    height: 70px;
+
 }
