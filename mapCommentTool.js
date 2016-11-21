@@ -104,8 +104,6 @@
 
         stopDrawingMode: function() {
             var self = this;
-            self.drawingCanvas.removeFrom(map);
-            delete self.drawingCanvas;
 
             // set mode to "drawing"
             self.currentMode = 'controlBarHome';
@@ -129,6 +127,10 @@
                     }
                 });
             });
+
+            self.drawingCanvas.removeFrom(map);
+            delete self.drawingCanvas;
+
         }
     };
 
@@ -459,47 +461,6 @@
             }
 
             window.map.MapCommentTool.stopDrawingMode();
-            // render text to image
-            self.textRenderingCanvas = L.canvas({padding: 0});
-            self.textRenderingCanvas.addTo(map);
-            var ctx = self.textRenderingCanvas._ctx;
-
-            comment.getLayers().forEach(function(layer) {
-                if (layer.layerType == 'textDrawing') {
-                    comment.removeLayer(layer);
-                }
-            });
-
-            comment.getLayers().forEach(function(layer) {
-                if (layer.layerType == 'textArea') {
-
-                    if (layer.textVal.replace(/\s/g, "").length === 0) {
-                        comment.removeLayer(layer);
-                    } else {
-                        layer.isNew = false;
-                        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clearing the canvas, just in case. Might not actually be necessary.
-                        ctx.font = "40px monospace";
-                        var splitText = layer.textVal.split("\n");
-                        var lineNo = 0;
-                        var lineHeight = 42;
-                        splitText.forEach(function(textLine) {
-                            ctx.fillText(textLine, layer.pos.x - 6, layer.pos.y + 26 + lineNo * lineHeight); // figure out the relationship between this offset and the font size....
-                            lineNo++;
-                        });
-
-                        var img = ctx.canvas.toDataURL("data:image/png");
-                        var imageBoundsXY = self.textRenderingCanvas._bounds;
-                        var imageBoundsMinCoord = map.layerPointToLatLng(imageBoundsXY.min);
-                        var imageBoundsMaxCoord = map.layerPointToLatLng(imageBoundsXY.max);
-                        var imageBounds = [[imageBoundsMinCoord.lat,imageBoundsMinCoord.lng], [imageBoundsMaxCoord.lat, imageBoundsMaxCoord.lng]];
-                        var drawing = L.imageOverlay(canvasDrawing, imageBounds);
-                        var newTextImageOverlay = L.imageOverlay(img, imageBounds);
-                        newTextImageOverlay.layerType = 'textDrawing';
-                        comment.addLayer(newTextImageOverlay);
-                    }
-                }                
-            });
-            self.textRenderingCanvas.removeFrom(map);
             comment.zoomLevel = map.getZoom();
             comment.saveState = true;            
             return comment;
@@ -601,6 +562,7 @@
                             return line.length;
                         });
                         layer._icon.children[0].cols = Math.max.apply(null, lengths);
+                        self.text.renderText(comment, layer.textId, layer._icon.children[0].value);
                     });
                     layer._icon.children[0].rows = (layer._icon.children[0].value.match(/\n/g) || []).length + 1;
                     var lengths = layer._icon.children[0].value.split('\n').map(function(line) {
@@ -645,7 +607,7 @@
             lastY: -1,
             initialize: function(options) {
                 var self = this;
-                self.colour = options.colour
+                self.colour = options.colour;
                 window.map.MapCommentTool.drawingCanvas._container.classList.add("drawing-canvas-" + self.colour + "-pen");
 
                 self.setListeners();
@@ -826,6 +788,7 @@
                         }
                         self.marker.addTo(map);
                         self.marker.listenerSet = false;
+                        self.marker.textId = window.map.MapCommentTool.Util.generateGUID();
 
                         // autosizing text boxes...
                         // this is literally like the worst possible solution.
@@ -837,6 +800,7 @@
                                         return line.length;
                                     });
                                     layer._icon.children[0].cols = Math.max.apply(null, lengths);
+                                    self.renderText(comment, layer.textId, layer._icon.children[0].value);
                                 });
                                 layer.listenerSet = true;
                             }
@@ -851,6 +815,8 @@
                         self.marker = '';
                         self.state = 'addMarker';
                     }
+                } else if (e.originalEvent.target.nodeName == 'TEXTAREA') {
+                    console.log('editing older text');
                 } else if (e.originalEvent.target.nodeName == 'BUTTON') {
                     self.state = 'addMarker';
                 }
@@ -861,6 +827,49 @@
                 var context = canvas.getContext('2d');
                 window.map.on('click', self.handleText);
             },
+            renderText: function(comment, textId, stringVal) {
+                // render text to image
+                self.textRenderingCanvas = L.canvas({padding: 0});
+                self.textRenderingCanvas.addTo(map);
+                var ctx = self.textRenderingCanvas._ctx;
+
+                comment.getLayers().forEach(function(layer) {
+                    if (layer.layerType == 'textDrawing' && layer.textId == textId) {
+                        comment.removeLayer(layer);
+                    }
+                });
+
+                comment.getLayers().forEach(function(layer) {
+                    if (layer.layerType == 'textArea' && layer.textId == textId) {
+
+                        if (stringVal.replace(/\s/g, "").length === 0) {
+                            comment.removeLayer(layer);
+                        } else {
+                            layer.isNew = false;
+                            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clearing the canvas, just in case. Might not actually be necessary.
+                            ctx.font = "40px monospace";
+                            var splitText = stringVal.split("\n");
+                            var lineNo = 0;
+                            var lineHeight = 47;
+                            splitText.forEach(function(textLine) {
+                                ctx.fillText(textLine, layer.pos.x - 6, layer.pos.y + 29 + lineNo * lineHeight); // figure out the relationship between this offset and the font size....
+                                lineNo++;
+                            });
+
+                            var img = ctx.canvas.toDataURL("data:image/png");
+                            var imageBoundsXY = self.textRenderingCanvas._bounds;
+                            var imageBoundsMinCoord = map.layerPointToLatLng(imageBoundsXY.min);
+                            var imageBoundsMaxCoord = map.layerPointToLatLng(imageBoundsXY.max);
+                            var imageBounds = [[imageBoundsMinCoord.lat,imageBoundsMinCoord.lng], [imageBoundsMaxCoord.lat, imageBoundsMaxCoord.lng]];
+                            var newTextImageOverlay = L.imageOverlay(img, imageBounds);
+                            newTextImageOverlay.layerType = 'textDrawing';
+                            newTextImageOverlay.textId = textId;
+                            comment.addLayer(newTextImageOverlay);
+                        }
+                    }                
+                });
+                self.textRenderingCanvas.removeFrom(map);
+            }
         }
 
     };
