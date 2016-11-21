@@ -382,7 +382,14 @@ describe('Text Comment Creation, Saving and Editing', function() {
 
 		it('fill text area with sample text and save', function() {
 		  	this.timeout(5000);
+		  	var textId;
 			document.getElementsByTagName('textarea')[0].value = "this is\nsome sample\nmultiline text";
+            comment.getLayers().forEach(function(layer) {
+	            if (layer.layerType == 'textArea') {
+					textId = layer.textId;
+				}
+			});
+			window.map.MapCommentTool.Tools.text.renderText(comment, textId, document.getElementsByTagName('textarea')[0].value);
 			assert.isOk(map.MapCommentTool.ControlBar.saveDrawing(comment.id), 'comment successfully saved');
 		});
 
