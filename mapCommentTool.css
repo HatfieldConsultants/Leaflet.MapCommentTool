@@ -178,3 +178,8 @@
     height: 70px;
 
 }
+
+.eraser-mode-text {
+    cursor:url(eraser.png) 15 30, auto;
+    border: dashed 3px red;
+}

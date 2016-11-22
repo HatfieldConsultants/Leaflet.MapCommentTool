@@ -553,6 +553,7 @@
             var comment = window.map.MapCommentTool.Comments.editingComment;
             comment.getLayers().forEach(function(layer) {
                 if (layer.layerType == 'textArea') {
+                    var textDrawingLayer;
                     layer.addTo(map);
                     var myIcon = L.divIcon({className: 'text-comment-div', html: '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="text-comment-input" maxlength="300"></textarea>'});
                     layer.setIcon(myIcon);
@@ -563,7 +564,31 @@
                             return line.length;
                         });
                         layer._icon.children[0].cols = Math.max.apply(null, lengths);
-                        self.text.renderText(comment, layer.textId, layer._icon.children[0].value);
+                        textDrawingLayer = self.text.renderText(comment, layer.textId, layer._icon.children[0].value);
+                    });
+                    layer._icon.children[0].addEventListener('mouseover', function() {
+                        if (self.currentTool == 'eraser') {
+                            layer._icon.children[0].classList.add("eraser-mode-text");
+                        }
+                    });
+                    layer._icon.children[0].addEventListener('mouseout', function() {
+                        if (self.currentTool == 'eraser') {
+                            layer._icon.children[0].classList.remove("eraser-mode-text");
+                        }
+                    });
+                    layer._icon.children[0].addEventListener('click', function() {
+                        if (map.MapCommentTool.Tools.currentTool == 'eraser') {
+                            comment.removeLayer(layer);
+                            layer.removeFrom(map);
+                            var textDrawingLayer;
+                            comment.getLayers().forEach(function(layer2) {
+                                if (layer2.layerType == 'textDrawing' && layer2.textId == layer.textId) {
+                                    textDrawingLayer = layer2;
+                                }
+                            });
+                            comment.removeLayer(textDrawingLayer);
+                            textDrawingLayer.removeFrom(map);
+                        }
                     });
                     layer._icon.children[0].rows = (layer._icon.children[0].value.match(/\n/g) || []).length + 1;
                     var lengths = layer._icon.children[0].value.split('\n').map(function(line) {
@@ -684,9 +709,10 @@
             initialize: function() {
                 var self = this;
                 self.setListeners();
+                map.getPane('markerPane').style['z-index'] = 600;
             },
             terminate: function() {
-                // tear down environment
+                map.getPane('markerPane').style['z-index'] = 300;
             },
             drawLine: function(ctx,x,y,size) {
                 var self = this;
@@ -803,6 +829,30 @@
                                     layer._icon.children[0].cols = Math.max.apply(null, lengths);
                                     self.renderText(comment, layer.textId, layer._icon.children[0].value);
                                 });
+                                layer._icon.children[0].addEventListener('mouseover', function() {
+                                    if (map.MapCommentTool.Tools.currentTool == 'eraser') {
+                                        layer._icon.children[0].classList.add("eraser-mode-text");
+                                    }
+                                });
+                                layer._icon.children[0].addEventListener('mouseout', function() {
+                                    if (map.MapCommentTool.Tools.currentTool == 'eraser') {
+                                        layer._icon.children[0].classList.remove("eraser-mode-text");
+                                    }
+                                });
+                                layer._icon.children[0].addEventListener('click', function() {
+                                    if (map.MapCommentTool.Tools.currentTool == 'eraser') {
+                                        comment.removeLayer(layer);
+                                        layer.removeFrom(map);
+                                        var textDrawingLayer;
+                                        comment.getLayers().forEach(function(layer2) {
+                                            if (layer2.layerType == 'textDrawing' && layer2.textId == layer.textId) {
+                                                textDrawingLayer = layer2;
+                                            }
+                                        });
+                                        comment.removeLayer(textDrawingLayer);
+                                        textDrawingLayer.removeFrom(map);
+                                    }
+                                });
                                 layer.listenerSet = true;
                             }
                         });
@@ -839,6 +889,8 @@
                     }
                 });
 
+                var retLayer;
+
                 comment.getLayers().forEach(function(layer) {
                     if (layer.layerType == 'textArea' && layer.textId == textId) {
                         if (stringVal.replace(/\s/g, "").length === 0) {        
@@ -861,9 +913,9 @@
                             });
 
                             var img = ctx.canvas.toDataURL("data:image/png");
-                            var southWestX = layer.pos.x;
+                            var southWestX = layer.pos.x - 6;
                             var southWestY = layer.pos.y + canvas.height;
-                            var northEastX = layer.pos.x + canvas.width;
+                            var northEastX = layer.pos.x + canvas.width - 6;
                             var northEastY = layer.pos.y;
 
                             var southWest = map.layerPointToLatLng([southWestX, southWestY]);
@@ -874,8 +926,11 @@
                             newTextImageOverlay.layerType = 'textDrawing';
                             newTextImageOverlay.textId = textId;
                             comment.addLayer(newTextImageOverlay);
+                            retLayer = newTextImageOverlay;
                         }
-                    }                
+                    }
+
+                    return retLayer;                
                 });
             }
         }
