@@ -71,6 +71,7 @@
             controlContainer.insertBefore(container, controlContainer.firstChild);
 
             self.mergeCanvas = document.createElement('canvas');
+            self.textRenderingCanvas = document.createElement('canvas');
             self._map = map;
 
             map.MapCommentTool = MapCommentTool;             
@@ -829,9 +830,8 @@
             },
             renderText: function(comment, textId, stringVal) {
                 // render text to image
-                self.textRenderingCanvas = L.canvas({padding: 0});
-                self.textRenderingCanvas.addTo(map);
-                var ctx = self.textRenderingCanvas._ctx;
+                var canvas = window.map.MapCommentTool.textRenderingCanvas;
+                var ctx = canvas.getContext('2d');
 
                 comment.getLayers().forEach(function(layer) {
                     if (layer.layerType == 'textDrawing' && layer.textId == textId) {
@@ -846,21 +846,23 @@
                             comment.removeLayer(layer);
                         } else {
                             layer.isNew = false;
-                            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clearing the canvas, just in case. Might not actually be necessary.
-                            ctx.font = "40px monospace";
                             var splitText = stringVal.split("\n");
                             var lineNo = 0;
                             var lineHeight = 47;
+                            canvas.height = splitText.length * lineHeight;
+                            var lengths = splitText.map(function(line) {
+                                return line.length;
+                            });
+                            canvas.width = Math.max.apply(null, lengths) * 24;
+                            ctx.font = "40px monospace";
+
                             splitText.forEach(function(textLine) {
-                                ctx.fillText(textLine, layer.pos.x - 6, layer.pos.y + 29 + lineNo * lineHeight); // figure out the relationship between this offset and the font size....
+                                ctx.fillText(textLine, 0, 29 + lineNo * (lineHeight + 1)); // figure out the relationship between this offset and the font size....
                                 lineNo++;
                             });
 
                             var img = ctx.canvas.toDataURL("data:image/png");
-                            var imageBoundsXY = self.textRenderingCanvas._bounds;
-                            var imageBoundsMinCoord = map.layerPointToLatLng(imageBoundsXY.min);
-                            var imageBoundsMaxCoord = map.layerPointToLatLng(imageBoundsXY.max);
-                            var imageBounds = [[imageBoundsMinCoord.lat,imageBoundsMinCoord.lng], [imageBoundsMaxCoord.lat, imageBoundsMaxCoord.lng]];
+                            var imageBounds = map.getBounds();
                             var newTextImageOverlay = L.imageOverlay(img, imageBounds);
                             newTextImageOverlay.layerType = 'textDrawing';
                             newTextImageOverlay.textId = textId;
@@ -868,7 +870,6 @@
                         }
                     }                
                 });
-                self.textRenderingCanvas.removeFrom(map);
             }
         }
 
