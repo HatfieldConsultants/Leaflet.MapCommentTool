@@ -841,8 +841,7 @@
 
                 comment.getLayers().forEach(function(layer) {
                     if (layer.layerType == 'textArea' && layer.textId == textId) {
-
-                        if (stringVal.replace(/\s/g, "").length === 0) {
+                        if (stringVal.replace(/\s/g, "").length === 0) {        
                             comment.removeLayer(layer);
                         } else {
                             layer.isNew = false;
@@ -853,7 +852,7 @@
                             var lengths = splitText.map(function(line) {
                                 return line.length;
                             });
-                            canvas.width = Math.max.apply(null, lengths) * 24;
+                            canvas.width = Math.max.apply(null, lengths) * 25;
                             ctx.font = "40px monospace";
 
                             splitText.forEach(function(textLine) {
@@ -862,7 +861,15 @@
                             });
 
                             var img = ctx.canvas.toDataURL("data:image/png");
-                            var imageBounds = map.getBounds();
+                            var southWestX = layer.pos.x;
+                            var southWestY = layer.pos.y + canvas.height;
+                            var northEastX = layer.pos.x + canvas.width;
+                            var northEastY = layer.pos.y;
+
+                            var southWest = map.layerPointToLatLng([southWestX, southWestY]);
+                            var northEast = map.layerPointToLatLng([northEastX, northEastY]);
+
+                            var imageBounds = [southWest, northEast];
                             var newTextImageOverlay = L.imageOverlay(img, imageBounds);
                             newTextImageOverlay.layerType = 'textDrawing';
                             newTextImageOverlay.textId = textId;
