@@ -92,8 +92,13 @@
             self.ControlBar.currentView = self.ControlBar.displayControl('drawing', comment.id);
 
             // Remove all comment layer groups from map
-            window.map.MapCommentTool.Comments.list.forEach(function(comment){
-                comment.removeFrom(map);
+            window.map.MapCommentTool.Comments.list.forEach(function(_comment){
+                _comment.removeFrom(map);
+            });
+            comment.getLayers().forEach(function(commentLayer) {
+                if (commentLayer.layerType == 'textDrawing') {
+                    //commentLayer.addTo(map);
+                }
             });
 
             window.map.MapCommentTool.Comments.editingComment = comment;
@@ -886,6 +891,7 @@
                 comment.getLayers().forEach(function(layer) {
                     if (layer.layerType == 'textDrawing' && layer.textId == textId) {
                         comment.removeLayer(layer);
+                        layer.removeFrom(map);
                     }
                 });
 
