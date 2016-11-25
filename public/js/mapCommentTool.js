@@ -40,7 +40,7 @@
                     container.style.width = '40px';
                     container.style.height = '40px';
                     container.style.cursor = 'pointer';
-                    container.innerHTML = '<img src=pencil.png class="panel-control-icon">'; // this is temporary...
+                    container.innerHTML = '<img src="img/pencil.png" class="panel-control-icon">'; // this is temporary...
                     container.onclick = function(){
                         self.ControlBar.toggle();
                     };
@@ -308,31 +308,31 @@
             var br2 = L.DomUtil.create('br', '', drawingView);
             var redPenSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-pen', drawingView);
             var redPenSelectImage = L.DomUtil.create('img', '', redPenSelectButton);
-            redPenSelectImage.src = "red-pen.png";
+            redPenSelectImage.src = "img/red-pen.png";
             redPenSelectButton.onclick = function() {
                 window.map.MapCommentTool.Tools.setCurrentTool('pen', {colour: 'red'}); 
             };
             var yellowPenSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-pen', drawingView);
             var yellowPenSelectImage = L.DomUtil.create('img', '', yellowPenSelectButton);
-            yellowPenSelectImage.src = "yellow-pen.png";
+            yellowPenSelectImage.src = "img/yellow-pen.png";
             yellowPenSelectButton.onclick = function() {
                 window.map.MapCommentTool.Tools.setCurrentTool('pen', {colour: 'yellow'}); 
             };
             var blackPenSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-pen', drawingView);
             var blackPenSelectImage = L.DomUtil.create('img', '', blackPenSelectButton);
-            blackPenSelectImage.src = "black-pen.png";
+            blackPenSelectImage.src = "img/black-pen.png";
             blackPenSelectButton.onclick = function() {
                 window.map.MapCommentTool.Tools.setCurrentTool('pen', {colour: 'black'}); 
             };
             var eraserSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-eraser', drawingView);
             var eraserSelectImage = L.DomUtil.create('img', '', eraserSelectButton);
-            eraserSelectImage.src = "eraser.png";
+            eraserSelectImage.src = "img/eraser.png";
             eraserSelectButton.onclick = function() {
                 window.map.MapCommentTool.Tools.setCurrentTool('eraser'); 
             };
             var textSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-text', drawingView);
             var textSelectImage = L.DomUtil.create('img', '', textSelectButton);
-            textSelectImage.src = "text.png";
+            textSelectImage.src = "img/text.png";
             textSelectButton.onclick = function() {
                 window.map.MapCommentTool.Tools.setCurrentTool('text'); 
             };
@@ -468,7 +468,26 @@
 
             window.map.MapCommentTool.stopDrawingMode();
             comment.zoomLevel = map.getZoom();
-            comment.saveState = true;            
+            comment.saveState = true;    
+
+            // Fire "Save drawing event"
+            var event;
+            if (oldDrawing) {
+                event = new CustomEvent("save-drawing", { 
+                    "detail" : {
+                        "message": "A drawing has been edited and saved" 
+                    }
+                });
+            } else {
+                event = new CustomEvent("new-drawing", { 
+                    "detail" : {
+                        "message": "A new drawing has been saved" 
+                    }
+                });
+            }
+
+            // Dispatch/Trigger/Fire the event
+            document.dispatchEvent(event);        
             return comment;
         },
 
@@ -941,6 +960,17 @@
             }
         }
 
+    };
+
+    MapCommentTool.Network = {
+        init: function() {
+            document.addEventListener("save-drawing", function(e) {
+              console.log(e.detail.message); // Prints "Example of an event"
+            });
+            document.addEventListener("new-drawing", function(e) {
+              console.log(e.detail.message); // Prints "Example of an event"
+            });
+        },
     };
 
     // return your plugin when you are done
