@@ -71,6 +71,7 @@
             controlContainer.insertBefore(container, controlContainer.firstChild);
 
             self.mergeCanvas = document.createElement('canvas');
+            self.textRenderingCanvas = document.createElement('canvas');
             self._map = map;
 
             map.MapCommentTool = MapCommentTool;             
@@ -91,8 +92,13 @@
             self.ControlBar.currentView = self.ControlBar.displayControl('drawing', comment.id);
 
             // Remove all comment layer groups from map
-            window.map.MapCommentTool.Comments.list.forEach(function(comment){
-                comment.removeFrom(map);
+            window.map.MapCommentTool.Comments.list.forEach(function(_comment){
+                _comment.removeFrom(map);
+            });
+            comment.getLayers().forEach(function(commentLayer) {
+                if (commentLayer.layerType == 'textDrawing') {
+                    //commentLayer.addTo(map);
+                }
             });
 
             window.map.MapCommentTool.Comments.editingComment = comment;
@@ -552,6 +558,7 @@
             var comment = window.map.MapCommentTool.Comments.editingComment;
             comment.getLayers().forEach(function(layer) {
                 if (layer.layerType == 'textArea') {
+                    var textDrawingLayer;
                     layer.addTo(map);
                     var myIcon = L.divIcon({className: 'text-comment-div', html: '<textarea autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="text-comment-input" maxlength="300"></textarea>'});
                     layer.setIcon(myIcon);
@@ -562,7 +569,31 @@
                             return line.length;
                         });
                         layer._icon.children[0].cols = Math.max.apply(null, lengths);
-                        self.text.renderText(comment, layer.textId, layer._icon.children[0].value);
+                        textDrawingLayer = self.text.renderText(comment, layer.textId, layer._icon.children[0].value);
+                    });
+                    layer._icon.children[0].addEventListener('mouseover', function() {
+                        if (self.currentTool == 'eraser') {
+                            layer._icon.children[0].classList.add("eraser-mode-text");
+                        }
+                    });
+                    layer._icon.children[0].addEventListener('mouseout', function() {
+                        if (self.currentTool == 'eraser') {
+                            layer._icon.children[0].classList.remove("eraser-mode-text");
+                        }
+                    });
+                    layer._icon.children[0].addEventListener('click', function() {
+                        if (map.MapCommentTool.Tools.currentTool == 'eraser') {
+                            comment.removeLayer(layer);
+                            layer.removeFrom(map);
+                            var textDrawingLayer;
+                            comment.getLayers().forEach(function(layer2) {
+                                if (layer2.layerType == 'textDrawing' && layer2.textId == layer.textId) {
+                                    textDrawingLayer = layer2;
+                                }
+                            });
+                            comment.removeLayer(textDrawingLayer);
+                            textDrawingLayer.removeFrom(map);
+                        }
                     });
                     layer._icon.children[0].rows = (layer._icon.children[0].value.match(/\n/g) || []).length + 1;
                     var lengths = layer._icon.children[0].value.split('\n').map(function(line) {
@@ -683,9 +714,10 @@
             initialize: function() {
                 var self = this;
                 self.setListeners();
+                map.getPane('markerPane').style['z-index'] = 600;
             },
             terminate: function() {
-                // tear down environment
+                map.getPane('markerPane').style['z-index'] = 300;
             },
             drawLine: function(ctx,x,y,size) {
                 var self = this;
@@ -802,6 +834,30 @@
                                     layer._icon.children[0].cols = Math.max.apply(null, lengths);
                                     self.renderText(comment, layer.textId, layer._icon.children[0].value);
                                 });
+                                layer._icon.children[0].addEventListener('mouseover', function() {
+                                    if (map.MapCommentTool.Tools.currentTool == 'eraser') {
+                                        layer._icon.children[0].classList.add("eraser-mode-text");
+                                    }
+                                });
+                                layer._icon.children[0].addEventListener('mouseout', function() {
+                                    if (map.MapCommentTool.Tools.currentTool == 'eraser') {
+                                        layer._icon.children[0].classList.remove("eraser-mode-text");
+                                    }
+                                });
+                                layer._icon.children[0].addEventListener('click', function() {
+                                    if (map.MapCommentTool.Tools.currentTool == 'eraser') {
+                                        comment.removeLayer(layer);
+                                        layer.removeFrom(map);
+                                        var textDrawingLayer;
+                                        comment.getLayers().forEach(function(layer2) {
+                                            if (layer2.layerType == 'textDrawing' && layer2.textId == layer.textId) {
+                                                textDrawingLayer = layer2;
+                                            }
+                                        });
+                                        comment.removeLayer(textDrawingLayer);
+                                        textDrawingLayer.removeFrom(map);
+                                    }
+                                });
                                 layer.listenerSet = true;
                             }
                         });
@@ -829,46 +885,59 @@
             },
             renderText: function(comment, textId, stringVal) {
                 // render text to image
-                self.textRenderingCanvas = L.canvas({padding: 0});
-                self.textRenderingCanvas.addTo(map);
-                var ctx = self.textRenderingCanvas._ctx;
+                var canvas = window.map.MapCommentTool.textRenderingCanvas;
+                var ctx = canvas.getContext('2d');
 
                 comment.getLayers().forEach(function(layer) {
                     if (layer.layerType == 'textDrawing' && layer.textId == textId) {
                         comment.removeLayer(layer);
+                        layer.removeFrom(map);
                     }
                 });
 
+                var retLayer;
+
                 comment.getLayers().forEach(function(layer) {
                     if (layer.layerType == 'textArea' && layer.textId == textId) {
-
-                        if (stringVal.replace(/\s/g, "").length === 0) {
+                        if (stringVal.replace(/\s/g, "").length === 0) {        
                             comment.removeLayer(layer);
                         } else {
                             layer.isNew = false;
-                            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clearing the canvas, just in case. Might not actually be necessary.
-                            ctx.font = "40px monospace";
                             var splitText = stringVal.split("\n");
                             var lineNo = 0;
                             var lineHeight = 47;
+                            canvas.height = splitText.length * lineHeight;
+                            var lengths = splitText.map(function(line) {
+                                return line.length;
+                            });
+                            canvas.width = Math.max.apply(null, lengths) * 25;
+                            ctx.font = "40px monospace";
+
                             splitText.forEach(function(textLine) {
-                                ctx.fillText(textLine, layer.pos.x - 6, layer.pos.y + 29 + lineNo * lineHeight); // figure out the relationship between this offset and the font size....
+                                ctx.fillText(textLine, 0, 29 + lineNo * (lineHeight + 1)); // figure out the relationship between this offset and the font size....
                                 lineNo++;
                             });
 
                             var img = ctx.canvas.toDataURL("data:image/png");
-                            var imageBoundsXY = self.textRenderingCanvas._bounds;
-                            var imageBoundsMinCoord = map.layerPointToLatLng(imageBoundsXY.min);
-                            var imageBoundsMaxCoord = map.layerPointToLatLng(imageBoundsXY.max);
-                            var imageBounds = [[imageBoundsMinCoord.lat,imageBoundsMinCoord.lng], [imageBoundsMaxCoord.lat, imageBoundsMaxCoord.lng]];
+                            var southWestX = layer.pos.x - 6;
+                            var southWestY = layer.pos.y + canvas.height;
+                            var northEastX = layer.pos.x + canvas.width - 6;
+                            var northEastY = layer.pos.y;
+
+                            var southWest = map.layerPointToLatLng([southWestX, southWestY]);
+                            var northEast = map.layerPointToLatLng([northEastX, northEastY]);
+
+                            var imageBounds = [southWest, northEast];
                             var newTextImageOverlay = L.imageOverlay(img, imageBounds);
                             newTextImageOverlay.layerType = 'textDrawing';
                             newTextImageOverlay.textId = textId;
                             comment.addLayer(newTextImageOverlay);
+                            retLayer = newTextImageOverlay;
                         }
-                    }                
+                    }
+
+                    return retLayer;                
                 });
-                self.textRenderingCanvas.removeFrom(map);
             }
         }
 
