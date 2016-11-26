@@ -14,7 +14,7 @@ app.get('/', function(req, res){
 io.on('connection', function(socket){
   	console.log('a user connected');
   	
-  	io.emit('load comments', comments);
+  	socket.emit('load comments', comments);
 
   	socket.on('disconnect', function(){
     	console.log('user disconnected');
@@ -24,12 +24,13 @@ io.on('connection', function(socket){
     	var newDrawing = msg.payload;
     	comments.push(newDrawing);
 		console.log(JSON.stringify(newDrawing, null, 2));
-		socket.broadcast.emit('update comments', newDrawing);
+		socket.broadcast.emit('new comment added', newDrawing);
   	});
 	socket.on('save drawing', function(msg){
-    	console.log('message: ' + msg.message);
-    	console.log(msg.payload);
-		socket.broadcast.emit('update comments', newDrawing);
+    	let index = comments.map( (el) => el.id ).indexOf(msg.payload.id);
+    	comments[index] = msg.payload;
+		
+		socket.broadcast.emit('comment edited', msg.payload);
   	});
 });
 

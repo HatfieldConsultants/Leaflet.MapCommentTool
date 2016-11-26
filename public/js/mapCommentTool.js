@@ -471,17 +471,31 @@
             comment.saveState = true;    
 
             // Fire "Save drawing event"
+            // TO BE HEAVILY REFACTORED
             var event;
             if (oldDrawing) {
-                event = new CustomEvent("save-drawing", { 
+                var eventDetails = { 
                     "detail" : {
                         "message": "A drawing has been edited and saved",
                         "payload": {
                             "id": comment.id,
-                            "message": "NOT YET IMPLEMENTED",
+                            "layers" : [],
                         },
                     }
+                };
+
+                var layers = comment.getLayers();
+                
+                layers.forEach(function(layer) {
+                    var layerAdd = {};
+                    layerAdd.layerType = layer.layerType;
+                    if (layer.layerType == 'drawing') {
+                        layerAdd._bounds = layer._bounds;
+                        layerAdd.src = layer._image.src;
+                    }
+                    eventDetails.detail.payload.layers.push(layerAdd);
                 });
+                event = new CustomEvent("save-drawing", eventDetails);
             } else {
                 var eventDetails = { 
                     "detail" : {
@@ -986,11 +1000,65 @@
     MapCommentTool.Network = {
         init: function() {
             socket.on('load comments', function(msg) {
+                msg.forEach(function(loadedComment) {
+                    var comment = L.layerGroup();
+                    comment.id = loadedComment.id;
+                    var imageUrl = loadedComment.layers[0].src;
+                    var imageBounds = loadedComment.layers[0]._bounds;
+                    var newImage = L.imageOverlay(imageUrl, [imageBounds._southWest, imageBounds._northEast])
+                    newImage.addTo(comment);
+                    newImage.layerType = 'drawing';
+                    window.map.MapCommentTool.Comments.list.push(comment);
+
+                    // IF CURRENTLY IN MAP VIEWING MODE
+                    comment.addTo(map);
+                });
+                window.map.MapCommentTool.ControlBar.displayControl('home');
+            });
+            socket.on('new comment added', function(msg) {
+                var comment = L.layerGroup();
+                comment.id = msg.id;
+                var imageUrl = msg.layers[0].src;
+                var imageBounds = msg.layers[0]._bounds;
+                var newImage = L.imageOverlay(imageUrl, [imageBounds._southWest, imageBounds._northEast])
+                newImage.addTo(comment);
+                newImage.layerType = 'drawing';
+                window.map.MapCommentTool.Comments.list.push(comment);
+
+                // IF CURRENTLY IN MAP VIEWING MODE
+                comment.addTo(map);
+
+                //IF IN HOME VIEW, RELOAD COMMENT LIST
+                window.map.MapCommentTool.ControlBar.displayControl('home');
+
+            });
+
+            socket.on('comment edited', function(msg) {
                 console.log(msg);
-            })
-            socket.on('update comments', function(msg) {
-                console.log(msg);
-            })
+                var comment;
+                window.map.MapCommentTool.Comments.list.forEach(function(listComment) {
+                    if (listComment.id == msg.id) {
+                        comment = listComment;
+                    }
+                });
+                console.log(comment);
+                comment.getLayers().forEach(function(layer) {
+                    if (layer.layerType == 'drawing') {
+                        console.log(comment);
+                        console.log('REMOVING');
+                        comment.removeLayer(layer);
+                        layer.removeFrom(map);
+                        console.log('REMOVED');
+                        console.log(comment);
+                    }
+                });
+
+                var imageUrl = msg.layers[0].src;
+                var imageBounds = msg.layers[0]._bounds;
+                L.imageOverlay(imageUrl, [imageBounds._southWest, imageBounds._northEast]).addTo(comment);
+ 
+            });
+ 
             document.addEventListener("save-drawing", function(e) {
                 socket.emit('save drawing', e.detail);
             });
