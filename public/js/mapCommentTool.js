@@ -475,15 +475,36 @@
             if (oldDrawing) {
                 event = new CustomEvent("save-drawing", { 
                     "detail" : {
-                        "message": "A drawing has been edited and saved" 
+                        "message": "A drawing has been edited and saved",
+                        "payload": {
+                            "id": comment.id,
+                            "message": "NOT YET IMPLEMENTED",
+                        },
                     }
                 });
             } else {
-                event = new CustomEvent("new-drawing", { 
+                var eventDetails = { 
                     "detail" : {
-                        "message": "A new drawing has been saved" 
+                        "message": "A new drawing has been saved",
+                        "payload": {
+                            "id": comment.id,
+                            "layers" : [],
+                        },
                     }
+                };
+
+                var layers = comment.getLayers();
+                
+                layers.forEach(function(layer) {
+                    var layerAdd = {};
+                    layerAdd.layerType = layer.layerType;
+                    if (layer.layerType == 'drawing') {
+                        layerAdd._bounds = layer._bounds;
+                        layerAdd.src = layer._image.src;
+                    }
+                    eventDetails.detail.payload.layers.push(layerAdd);
                 });
+                event = new CustomEvent("new-drawing", eventDetails);
             }
 
             // Dispatch/Trigger/Fire the event
@@ -964,11 +985,18 @@
 
     MapCommentTool.Network = {
         init: function() {
+            socket.on('load comments', function(msg) {
+                console.log(msg);
+            })
+            socket.on('update comments', function(msg) {
+                console.log(msg);
+            })
             document.addEventListener("save-drawing", function(e) {
-              console.log(e.detail.message); // Prints "Example of an event"
+                socket.emit('save drawing', e.detail);
             });
             document.addEventListener("new-drawing", function(e) {
-              console.log(e.detail.message); // Prints "Example of an event"
+                console.log(e.detail);
+                socket.emit('new drawing', e.detail);
             });
         },
     };

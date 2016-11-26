@@ -13,8 +13,8 @@
     "mocha": "^1.20.1"
   },
   "scripts": {
-    "lint": "jshint --reporter=node_modules/jshint-stylish mapCommentTool.js test/test.js",
-    "build": "uglifyjs mapCommentTool.js -c -o dist/mapCommentTool.min.js",
+    "lint": "jshint --reporter=node_modules/jshint-stylish public/js/mapCommentTool.js test/test.js",
+    "build": "uglifyjs public/js/mapCommentTool.js -c -o dist/mapCommentTool.min.js",
     "test": "mocha-phantomjs -R spec -v 1920x987 --ssl-protocol=any test.html"
   },
   "jshintConfig": {
