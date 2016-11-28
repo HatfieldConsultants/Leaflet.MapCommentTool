@@ -265,15 +265,13 @@
             var commentList = L.DomUtil.create('ul', 'comment-list-ul', commentListDiv);
             window.map.MapCommentTool.Comments.list.forEach(function(comment) {
                 var commentLi = L.DomUtil.create('li', 'comment-list-li', commentList);
-                commentLi.innerHTML = comment.id;
+                commentLi.innerHTML = comment.name;
                 var image;
                 comment.getLayers().forEach(function(layer) {
                     if (layer.layerType == 'drawing') {
                         image = layer;
                     }
                 });
-
-                // temporary... will be changed to small buttons
 
                 var viewCommentButton = L.DomUtil.create('u', '', commentLi);
                 viewCommentButton.innerHTML = " View ";
@@ -282,10 +280,15 @@
                 };
 
                 var editCommentButton = L.DomUtil.create('u', '', commentLi);
-                editCommentButton.innerHTML = " Edit ";
-                editCommentButton.onclick = function() {
-                    return self.editComment(comment, image); 
-                };
+
+                if (map.MapCommentTool.Network.lockedComments.indexOf(comment.id) > -1) {
+                    editCommentButton.innerHTML = " Edit - LOCKED";
+                } else {
+                    editCommentButton.innerHTML = " Edit ";
+                    editCommentButton.onclick = function() {
+                        return self.editComment(comment, image); 
+                    };
+                }
 
             });
 
@@ -379,18 +382,35 @@
                 context.drawImage(imageObj, image._image._leaflet_pos.x, image._image._leaflet_pos.y, newWidth, newHeight);
             };
 
-            imageObj.src = image._image.src;                
+            imageObj.src = image._image.src;
+
+            var eventDetails = { 
+                "detail" : {
+                    "message": "A drawing is being edited",
+                    "payload": {
+                        "id": comment.id,
+                    },
+                }
+            };
+            event = new CustomEvent("edit-start", eventDetails);
+            document.dispatchEvent(event);
+
             return comment;
         },
 
         saveDrawing: function(commentId) {
             var self = this;
-
+            
             var commentIndex = window.map.MapCommentTool.Comments.list.findIndex(function (comment) {
                         return comment.id === commentId;
             });
             
             var comment = window.map.MapCommentTool.Comments.list[commentIndex];
+
+            // prompt for title saving...
+            if (!comment.saveState) {
+                comment.name = prompt("Please name your note", "Note") ||  "Note";
+            }
 
             // SAVING LOGIC
             var context = window.map.MapCommentTool.drawingCanvas._ctx;
@@ -468,23 +488,27 @@
 
             window.map.MapCommentTool.stopDrawingMode();
             comment.zoomLevel = map.getZoom();
+
             comment.saveState = true;    
 
             // Fire "Save drawing event"
             // TO BE HEAVILY REFACTORED
             var event;
+            var eventDetails;
+            var layers;
             if (oldDrawing) {
-                var eventDetails = { 
+                eventDetails = { 
                     "detail" : {
                         "message": "A drawing has been edited and saved",
                         "payload": {
                             "id": comment.id,
+                            "name": comment.name,
                             "layers" : [],
                         },
                     }
                 };
 
-                var layers = comment.getLayers();
+                layers = comment.getLayers();
                 
                 layers.forEach(function(layer) {
                     var layerAdd = {};
@@ -497,17 +521,18 @@
                 });
                 event = new CustomEvent("save-drawing", eventDetails);
             } else {
-                var eventDetails = { 
+                eventDetails = { 
                     "detail" : {
                         "message": "A new drawing has been saved",
                         "payload": {
                             "id": comment.id,
+                            "name": comment.name,
                             "layers" : [],
                         },
                     }
                 };
 
-                var layers = comment.getLayers();
+                layers = comment.getLayers();
                 
                 layers.forEach(function(layer) {
                     var layerAdd = {};
@@ -547,6 +572,18 @@
                         layer.removeFrom(map);
                     }
                 });
+
+                var eventDetails = { 
+                    "detail" : {
+                        "message": "A drawing is no longer being edited",
+                        "payload": {
+                            "id": comment.id,
+                        },
+                    }
+                };
+                event = new CustomEvent("edit-cancel", eventDetails);
+                document.dispatchEvent(event);                
+
             }
             window.map.MapCommentTool.stopDrawingMode();
             return true;
@@ -998,6 +1035,9 @@
     };
 
     MapCommentTool.Network = {
+        lockedComments: [],
+        usersViewing: [],
+
         init: function() {
             socket.on('load comments', function(msg) {
                 console.log("LOAD");
@@ -1006,10 +1046,12 @@
                     comment.id = loadedComment.id;
                     var imageUrl = loadedComment.layers[0].src;
                     var imageBounds = loadedComment.layers[0]._bounds;
-                    var newImage = L.imageOverlay(imageUrl, [imageBounds._southWest, imageBounds._northEast])
+                    var newImage = L.imageOverlay(imageUrl, [imageBounds._southWest, imageBounds._northEast]);
                     newImage.addTo(comment);
                     newImage.layerType = 'drawing';
                     window.map.MapCommentTool.Comments.list.push(comment);
+                    comment.name = loadedComment.name;
+                    comment.saveState = true;    
 
                     // IF CURRENTLY IN MAP VIEWING MODE
                     comment.addTo(map);
@@ -1022,11 +1064,12 @@
                 comment.id = msg.id;
                 var imageUrl = msg.layers[0].src;
                 var imageBounds = msg.layers[0]._bounds;
-                var newImage = L.imageOverlay(imageUrl, [imageBounds._southWest, imageBounds._northEast])
+                var newImage = L.imageOverlay(imageUrl, [imageBounds._southWest, imageBounds._northEast]);
                 newImage.addTo(comment);
                 newImage.layerType = 'drawing';
                 window.map.MapCommentTool.Comments.list.push(comment);
                 comment.saveState = true;    
+                comment.name = msg.name;
 
                 // IF CURRENTLY IN MAP VIEWING MODE
                 comment.addTo(map);
@@ -1037,7 +1080,6 @@
             });
 
             socket.on('comment edited', function(msg) {
-                console.log("EDIT");
                 var comment;
                 window.map.MapCommentTool.Comments.list.forEach(function(listComment) {
                     if (listComment.id == msg.id) {
@@ -1055,20 +1097,42 @@
 
                 var imageUrl = msg.layers[0].src;
                 var imageBounds = msg.layers[0]._bounds;
-                var newImage = L.imageOverlay(imageUrl, [imageBounds._southWest, imageBounds._northEast])
+                var newImage = L.imageOverlay(imageUrl, [imageBounds._southWest, imageBounds._northEast]);
                 newImage.addTo(comment);
                 newImage.layerType = 'drawing';
+                
+                let index = map.MapCommentTool.Network.lockedComments.map( (el) => el.id ).indexOf(msg.id);
+                map.MapCommentTool.Network.lockedComments.splice(index, 1);
 
                 //IF IN HOME VIEW, RELOAD COMMENT LIST
                 window.map.MapCommentTool.ControlBar.displayControl('home');
  
             });
- 
+
+            socket.on('start edit', function(msg) {
+                map.MapCommentTool.Network.lockedComments.push(msg.id);
+                //IF IN HOME VIEW, RELOAD COMMENT LIST
+                window.map.MapCommentTool.ControlBar.displayControl('home', msg.id);
+            });
+
+            socket.on('cancel edit', function(msg) {
+                let index = map.MapCommentTool.Network.lockedComments.map( (el) => el.id ).indexOf(msg.id);
+                map.MapCommentTool.Network.lockedComments.splice(index, 1);
+                //IF IN HOME VIEW, RELOAD COMMENT LIST
+                window.map.MapCommentTool.ControlBar.displayControl('home');
+            });
+
             document.addEventListener("save-drawing", function(e) {
                 socket.emit('save drawing', e.detail);
             });
             document.addEventListener("new-drawing", function(e) {
                 socket.emit('new drawing', e.detail);
+            });
+            document.addEventListener("edit-start", function(e) {
+                socket.emit('start edit', e.detail);
+            });
+            document.addEventListener("edit-cancel", function(e) {
+                socket.emit('cancel edit', e.detail);
             });
         },
     };

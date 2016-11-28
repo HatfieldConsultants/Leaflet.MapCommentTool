@@ -32,6 +32,12 @@ io.on('connection', function(socket){
 		
 		socket.broadcast.emit('comment edited', msg.payload);
   	});
+	socket.on('start edit', function(msg){
+		socket.broadcast.emit('start edit', msg.payload);
+  	});
+	socket.on('cancel edit', function(msg){
+		socket.broadcast.emit('cancel edit', msg.payload);
+  	});
 });
 
 http.listen(3000, function(){
