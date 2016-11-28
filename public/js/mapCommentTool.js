@@ -1000,6 +1000,7 @@
     MapCommentTool.Network = {
         init: function() {
             socket.on('load comments', function(msg) {
+                console.log("LOAD");
                 msg.forEach(function(loadedComment) {
                     var comment = L.layerGroup();
                     comment.id = loadedComment.id;
@@ -1016,6 +1017,7 @@
                 window.map.MapCommentTool.ControlBar.displayControl('home');
             });
             socket.on('new comment added', function(msg) {
+                console.log("ADD");
                 var comment = L.layerGroup();
                 comment.id = msg.id;
                 var imageUrl = msg.layers[0].src;
@@ -1024,6 +1026,7 @@
                 newImage.addTo(comment);
                 newImage.layerType = 'drawing';
                 window.map.MapCommentTool.Comments.list.push(comment);
+                comment.saveState = true;    
 
                 // IF CURRENTLY IN MAP VIEWING MODE
                 comment.addTo(map);
@@ -1034,28 +1037,30 @@
             });
 
             socket.on('comment edited', function(msg) {
-                console.log(msg);
+                console.log("EDIT");
                 var comment;
                 window.map.MapCommentTool.Comments.list.forEach(function(listComment) {
                     if (listComment.id == msg.id) {
                         comment = listComment;
                     }
                 });
-                console.log(comment);
                 comment.getLayers().forEach(function(layer) {
                     if (layer.layerType == 'drawing') {
-                        console.log(comment);
                         console.log('REMOVING');
                         comment.removeLayer(layer);
                         layer.removeFrom(map);
                         console.log('REMOVED');
-                        console.log(comment);
                     }
                 });
 
                 var imageUrl = msg.layers[0].src;
                 var imageBounds = msg.layers[0]._bounds;
-                L.imageOverlay(imageUrl, [imageBounds._southWest, imageBounds._northEast]).addTo(comment);
+                var newImage = L.imageOverlay(imageUrl, [imageBounds._southWest, imageBounds._northEast])
+                newImage.addTo(comment);
+                newImage.layerType = 'drawing';
+
+                //IF IN HOME VIEW, RELOAD COMMENT LIST
+                window.map.MapCommentTool.ControlBar.displayControl('home');
  
             });
  
@@ -1063,7 +1068,6 @@
                 socket.emit('save drawing', e.detail);
             });
             document.addEventListener("new-drawing", function(e) {
-                console.log(e.detail);
                 socket.emit('new drawing', e.detail);
             });
         },
