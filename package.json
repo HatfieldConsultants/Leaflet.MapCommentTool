@@ -5,6 +5,7 @@
   "private": true,
   "dependencies": {
     "express": "^4.10.2",
+    "mongodb": "^2.2.12",
     "socket.io": "^1.6.0"
   },
   "devDependencies": {
