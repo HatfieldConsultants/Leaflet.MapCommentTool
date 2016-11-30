@@ -1077,8 +1077,10 @@
 
     init: function() {
       socket.on('load comments', function(msg) {
-        console.log("LOAD");
-        msg.forEach(function(loadedComment) {
+
+        map.MapCommentTool.Network.lockedComments = msg.editList;
+
+        msg.comments.forEach(function(loadedComment) {
           var comment = L.layerGroup();
           comment.id = loadedComment.id;
           var imageUrl = loadedComment.layers[0].src;
@@ -1143,8 +1145,7 @@
         newImage.layerType = 'drawing';
         comment.zoomLevel = msg.zoomLevel;
 
-        let index = map.MapCommentTool.Network.lockedComments.map((el) => el.id).indexOf(msg.id);
-        map.MapCommentTool.Network.lockedComments.splice(index, 1);
+        map.MapCommentTool.Network.lockedComments = msg.editList;
 
         //IF IN HOME VIEW, RELOAD COMMENT LIST
         window.map.MapCommentTool.ControlBar.displayControl('home');
@@ -1152,14 +1153,13 @@
       });
 
       socket.on('start edit', function(msg) {
-        map.MapCommentTool.Network.lockedComments.push(msg.id);
+        map.MapCommentTool.Network.lockedComments = msg;
         //IF IN HOME VIEW, RELOAD COMMENT LIST
-        window.map.MapCommentTool.ControlBar.displayControl('home', msg.id);
+        window.map.MapCommentTool.ControlBar.displayControl('home');
       });
 
       socket.on('cancel edit', function(msg) {
-        let index = map.MapCommentTool.Network.lockedComments.map((el) => el.id).indexOf(msg.id);
-        map.MapCommentTool.Network.lockedComments.splice(index, 1);
+        map.MapCommentTool.Network.lockedComments = msg;
         //IF IN HOME VIEW, RELOAD COMMENT LIST
         window.map.MapCommentTool.ControlBar.displayControl('home');
       });

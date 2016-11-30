@@ -4,6 +4,7 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
 var comments = [];
+var beingEdited = [];
 
 app.use(express.static('public'));
 
@@ -14,7 +15,10 @@ app.get('/', function(req, res) {
 io.on('connection', function(socket) {
   console.log('a user connected');
 
-  socket.emit('load comments', comments);
+  socket.emit('load comments', {
+    comments: comments,
+    editList: beingEdited
+  });
 
   socket.on('disconnect', function() {
     console.log('user disconnected');
@@ -30,13 +34,25 @@ io.on('connection', function(socket) {
     let index = comments.map((el) => el.id).indexOf(msg.payload.id);
     comments[index] = msg.payload;
 
+    let editIndex = beingEdited.map((el) => el.id).indexOf(msg.payload.id);
+    beingEdited.splice(editIndex, 1);
+
+    msg.payload.editList = beingEdited;
+
     socket.broadcast.emit('comment edited', msg.payload);
   });
   socket.on('start edit', function(msg) {
-    socket.broadcast.emit('start edit', msg.payload);
+    // add to beingEdited
+    beingEdited.push(msg.payload.id);
+
+    socket.broadcast.emit('start edit', beingEdited);
   });
   socket.on('cancel edit', function(msg) {
-    socket.broadcast.emit('cancel edit', msg.payload);
+    // remove from beingEdited
+    let index = beingEdited.map((el) => el.id).indexOf(msg.payload.id);
+    beingEdited.splice(index, 1);
+
+    socket.broadcast.emit('cancel edit', beingEdited);
   });
 });
 
