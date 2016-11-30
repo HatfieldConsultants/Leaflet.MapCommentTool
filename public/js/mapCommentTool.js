@@ -29,7 +29,7 @@
             var customControl = L.Control.extend({
 
                 options: {
-                position: 'topleft' 
+                position: 'topleft'
                 //control position - allowed: 'topleft', 'topright', 'bottomleft', 'bottomright'
                 },
 
@@ -74,7 +74,7 @@
             self.textRenderingCanvas = document.createElement('canvas');
             self._map = map;
 
-            map.MapCommentTool = MapCommentTool;             
+            map.MapCommentTool = MapCommentTool;
         },
 
         startDrawingMode: function(comment) {
@@ -146,7 +146,7 @@
         options: {
             position: 'right',
         },
-        
+
         visible: false,
         currentView: '',
 
@@ -258,7 +258,7 @@
             var newCommentButton = L.DomUtil.create('button', 'controlbar-button controlbar-new', homeView);
             newCommentButton.innerHTML = "New Comment";
             newCommentButton.onclick = function() {
-                return self.startNewComment(); 
+                return self.startNewComment();
             };
 
             var commentListDiv = L.DomUtil.create('div', 'comment-list-div', homeView);
@@ -286,7 +286,7 @@
                 } else {
                     editCommentButton.innerHTML = " Edit ";
                     editCommentButton.onclick = function() {
-                        return self.editComment(comment, image); 
+                        return self.editComment(comment, image);
                     };
                 }
 
@@ -301,43 +301,43 @@
             var saveDrawingButton = L.DomUtil.create('button', 'controlbar-button controlbar-save', drawingView);
             saveDrawingButton.innerHTML = "Save";
             saveDrawingButton.onclick = function() {
-                self.saveDrawing(commentId); 
+                self.saveDrawing(commentId);
             };
             var cancelDrawingButton = L.DomUtil.create('button', 'controlbar-button controlbar-cancel', drawingView);
             cancelDrawingButton.innerHTML = "Cancel";
             cancelDrawingButton.onclick = function() {
-                self.cancelDrawing(commentId); 
+                self.cancelDrawing(commentId);
             };
             var br2 = L.DomUtil.create('br', '', drawingView);
             var redPenSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-pen', drawingView);
             var redPenSelectImage = L.DomUtil.create('img', '', redPenSelectButton);
             redPenSelectImage.src = "img/red-pen.png";
             redPenSelectButton.onclick = function() {
-                window.map.MapCommentTool.Tools.setCurrentTool('pen', {colour: 'red'}); 
+                window.map.MapCommentTool.Tools.setCurrentTool('pen', {colour: 'red'});
             };
             var yellowPenSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-pen', drawingView);
             var yellowPenSelectImage = L.DomUtil.create('img', '', yellowPenSelectButton);
             yellowPenSelectImage.src = "img/yellow-pen.png";
             yellowPenSelectButton.onclick = function() {
-                window.map.MapCommentTool.Tools.setCurrentTool('pen', {colour: 'yellow'}); 
+                window.map.MapCommentTool.Tools.setCurrentTool('pen', {colour: 'yellow'});
             };
             var blackPenSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-pen', drawingView);
             var blackPenSelectImage = L.DomUtil.create('img', '', blackPenSelectButton);
             blackPenSelectImage.src = "img/black-pen.png";
             blackPenSelectButton.onclick = function() {
-                window.map.MapCommentTool.Tools.setCurrentTool('pen', {colour: 'black'}); 
+                window.map.MapCommentTool.Tools.setCurrentTool('pen', {colour: 'black'});
             };
             var eraserSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-eraser', drawingView);
             var eraserSelectImage = L.DomUtil.create('img', '', eraserSelectButton);
             eraserSelectImage.src = "img/eraser.png";
             eraserSelectButton.onclick = function() {
-                window.map.MapCommentTool.Tools.setCurrentTool('eraser'); 
+                window.map.MapCommentTool.Tools.setCurrentTool('eraser');
             };
             var textSelectButton = L.DomUtil.create('button', 'controlbar-button controlbar-tool tool-text', drawingView);
             var textSelectImage = L.DomUtil.create('img', '', textSelectButton);
             textSelectImage.src = "img/text.png";
             textSelectButton.onclick = function() {
-                window.map.MapCommentTool.Tools.setCurrentTool('text'); 
+                window.map.MapCommentTool.Tools.setCurrentTool('text');
             };
 
         },
@@ -361,7 +361,7 @@
 
             // trigger drawing mode
             window.map.MapCommentTool.startDrawingMode(comment);
-           
+
             var canvas = window.map.MapCommentTool.drawingCanvas._container;
             var context = canvas.getContext('2d');
             var canvasTransformArray;
@@ -372,7 +372,7 @@
             } else {
                 canvasTransformArray = canvas.style.transform.split(/,|\(|\)|px| /);
             }
-            
+
             var imageObj = new Image();
 
             var newWidth = image._image.width * map.getZoomScale(map.getZoom(), comment.zoomLevel);
@@ -384,7 +384,7 @@
 
             imageObj.src = image._image.src;
 
-            var eventDetails = { 
+            var eventDetails = {
                 "detail" : {
                     "message": "A drawing is being edited",
                     "payload": {
@@ -400,11 +400,11 @@
 
         saveDrawing: function(commentId) {
             var self = this;
-            
+
             var commentIndex = window.map.MapCommentTool.Comments.list.findIndex(function (comment) {
                         return comment.id === commentId;
             });
-            
+
             var comment = window.map.MapCommentTool.Comments.list[commentIndex];
 
             // prompt for title saving...
@@ -449,7 +449,7 @@
                 var oldX_right = map.latLngToLayerPoint(oldDrawing._bounds._northEast).x;
                 var oldY_top = map.latLngToLayerPoint(oldDrawing._bounds._northEast).y;
                 var oldY_bottom = map.latLngToLayerPoint(oldDrawing._bounds._southWest).y;
-                
+
                 var leftMost = Math.min(newX_left, oldX_left);
                 var rightMost = Math.max(newX_right, oldX_right);
                 var topMost = Math.min(newY_top, oldY_top);
@@ -473,7 +473,7 @@
                     mergeContext.globalCompositeOperation="destination-out";
                     mergeContext.fillStyle="white";
                     mergeContext.fillRect(newX_left - leftMost, newY_top - topMost, newX_right - newX_left, newY_bottom - newY_top);
-                    
+
                     mergeContext.globalCompositeOperation="source-over";
                     mergeContext.drawImage(newImageToCanvas, newX_left - leftMost, newY_top - topMost, newX_right - newX_left, newY_bottom - newY_top);
                     var mergedDrawing = mergeCanvas.toDataURL("data:image/png");
@@ -482,14 +482,14 @@
                     comment.addLayer(mergedDrawingLayer);
                     mergedDrawingLayer.layerType = 'drawing';
                };
-              
+
                 oldImageToCanvas.src = oldDrawing._image.src;
             }
 
             window.map.MapCommentTool.stopDrawingMode();
             comment.zoomLevel = map.getZoom();
 
-            comment.saveState = true;    
+            comment.saveState = true;
 
             // Fire "Save drawing event"
             // TO BE HEAVILY REFACTORED
@@ -497,19 +497,20 @@
             var eventDetails;
             var layers;
             if (oldDrawing) {
-                eventDetails = { 
+                eventDetails = {
                     "detail" : {
                         "message": "A drawing has been edited and saved",
                         "payload": {
                             "id": comment.id,
                             "name": comment.name,
                             "layers" : [],
+                            "zoomLevel" : comment.zoomLevel,
                         },
                     }
                 };
 
                 layers = comment.getLayers();
-                
+
                 layers.forEach(function(layer) {
                     var layerAdd = {};
                     layerAdd.layerType = layer.layerType;
@@ -521,19 +522,20 @@
                 });
                 event = new CustomEvent("save-drawing", eventDetails);
             } else {
-                eventDetails = { 
+                eventDetails = {
                     "detail" : {
                         "message": "A new drawing has been saved",
                         "payload": {
                             "id": comment.id,
                             "name": comment.name,
                             "layers" : [],
+                            "zoomLevel" : comment.zoomLevel,
                         },
                     }
                 };
 
                 layers = comment.getLayers();
-                
+
                 layers.forEach(function(layer) {
                     var layerAdd = {};
                     layerAdd.layerType = layer.layerType;
@@ -547,7 +549,7 @@
             }
 
             // Dispatch/Trigger/Fire the event
-            document.dispatchEvent(event);        
+            document.dispatchEvent(event);
             return comment;
         },
 
@@ -573,7 +575,7 @@
                     }
                 });
 
-                var eventDetails = { 
+                var eventDetails = {
                     "detail" : {
                         "message": "A drawing is no longer being edited",
                         "payload": {
@@ -582,7 +584,7 @@
                     }
                 };
                 event = new CustomEvent("edit-cancel", eventDetails);
-                document.dispatchEvent(event);                
+                document.dispatchEvent(event);
 
             }
             window.map.MapCommentTool.stopDrawingMode();
@@ -591,9 +593,9 @@
 
     };
 
-    
-    MapCommentTool.Comments = { 
-        
+
+    MapCommentTool.Comments = {
+
         list: [],
         editingComment: {},
 
@@ -616,7 +618,7 @@
 
     MapCommentTool.Util = {
 
-        generateGUID: function() {            
+        generateGUID: function() {
             function s4() {
                 return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
             }
@@ -644,7 +646,7 @@
         on: function() {
             var self = this;
             self.setCurrentTool(self.defaultTool, {colour: 'red'});
-        
+
             // initialize textAreas
             var comment = window.map.MapCommentTool.Comments.editingComment;
             comment.getLayers().forEach(function(layer) {
@@ -743,7 +745,7 @@
                 //operation properties
                 ctx.globalCompositeOperation = "source-over";
 
-                // If lastX is not set, set lastX and lastY to the current position 
+                // If lastX is not set, set lastX and lastY to the current position
                 if (self.lastX==-1) {
                     self.lastX=x;
                     self.lastY=y;
@@ -815,7 +817,7 @@
                 //operation properties
                 ctx.globalCompositeOperation = "destination-out";
 
-                // If lastX is not set, set lastX and lastY to the current position 
+                // If lastX is not set, set lastX and lastY to the current position
                 if (self.lastX==-1) {
                     self.lastX=x;
                     self.lastY=y;
@@ -902,7 +904,7 @@
                         comment.addLayer(self.marker);
                         self.marker.layerType = 'textArea';
                         self.marker.isNew = true;
-                        
+
                         // because of phantomJS
                         if (e.originalEvent.target.nodeName == "DIV") {
                             self.marker.pos = { x: 50, y: 100 };
@@ -990,7 +992,7 @@
 
                 comment.getLayers().forEach(function(layer) {
                     if (layer.layerType == 'textArea' && layer.textId == textId) {
-                        if (stringVal.replace(/\s/g, "").length === 0) {        
+                        if (stringVal.replace(/\s/g, "").length === 0) {
                             comment.removeLayer(layer);
                         } else {
                             layer.isNew = false;
@@ -1027,7 +1029,7 @@
                         }
                     }
 
-                    return retLayer;                
+                    return retLayer;
                 });
             }
         }
@@ -1051,7 +1053,9 @@
                     newImage.layerType = 'drawing';
                     window.map.MapCommentTool.Comments.list.push(comment);
                     comment.name = loadedComment.name;
-                    comment.saveState = true;    
+                    comment.saveState = true;
+                    console.log(loadedComment.zoomLevel);
+                    comment.zoomLevel = loadedComment.zoomLevel;
 
                     // IF CURRENTLY IN MAP VIEWING MODE
                     comment.addTo(map);
@@ -1068,8 +1072,10 @@
                 newImage.addTo(comment);
                 newImage.layerType = 'drawing';
                 window.map.MapCommentTool.Comments.list.push(comment);
-                comment.saveState = true;    
+                comment.saveState = true;
                 comment.name = msg.name;
+                comment.zoomLevel = msg.zoomLevel;
+                console.log(msg.zoomLevel);
 
                 // IF CURRENTLY IN MAP VIEWING MODE
                 comment.addTo(map);
@@ -1100,13 +1106,14 @@
                 var newImage = L.imageOverlay(imageUrl, [imageBounds._southWest, imageBounds._northEast]);
                 newImage.addTo(comment);
                 newImage.layerType = 'drawing';
-                
+                comment.zoomLevel = msg.zoomLevel;
+
                 let index = map.MapCommentTool.Network.lockedComments.map( (el) => el.id ).indexOf(msg.id);
                 map.MapCommentTool.Network.lockedComments.splice(index, 1);
 
                 //IF IN HOME VIEW, RELOAD COMMENT LIST
                 window.map.MapCommentTool.ControlBar.displayControl('home');
- 
+
             });
 
             socket.on('start edit', function(msg) {
