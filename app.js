@@ -105,7 +105,9 @@ io.on('connection', function(socket) {
       assert.equal(null, err);
       getBeingEdited(db, function(editListArray, self) {
         db.close();
-        editList = editListArray;
+        editList = editListArray.map(function(a) {
+          return a.id;
+        });
         callback();
       });
     });
@@ -165,11 +167,10 @@ io.on('connection', function(socket) {
       assert.equal(null, err);
       insertEditComment(db, msg.payload, function() {
         db.close();
+        prepareEditCommentsForLoad(function() {
+          loadSocketEdit(editList);
+        });
       });
-    });
-
-    prepareEditCommentsForLoad(function() {
-      loadSocketEdit(editList);
     });
   });
 
@@ -177,12 +178,13 @@ io.on('connection', function(socket) {
     MongoClient.connect(url, function(err, db) {
       assert.equal(null, err);
 
-      removeRestaurants(db, msg.payload.id, function() {
+      removeEditComment(db, msg.payload.id, function() {
         db.close();
+        prepareEditCommentsForLoad(function() {
+          loadSocketEdit(editList);
+        });
       });
     });
-
-    socket.broadcast.emit('cancel edit', beingEdited);
   });
 
 });
