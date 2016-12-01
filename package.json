@@ -25,6 +25,5 @@
     "esversion": 6
   },
   "babel": {
-    "presets": ["es2015"]
   }
 }
