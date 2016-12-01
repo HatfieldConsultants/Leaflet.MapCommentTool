@@ -1148,8 +1148,6 @@
         newImage.layerType = 'drawing';
         comment.zoomLevel = msg.zoomLevel;
 
-        map.MapCommentTool.Network.lockedComments = msg.editList;
-
         //IF IN HOME VIEW, RELOAD COMMENT LIST
         if (window.map.MapCommentTool.currentMode == 'controlBarHome') {
           window.map.MapCommentTool.ControlBar.displayControl('home');
