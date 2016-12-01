@@ -121,7 +121,7 @@ io.on('connection', function(socket) {
   }
 
   var loadSocketEdit = function(editList) {
-    socket.broadcast.emit('start edit', {
+    io.emit('start edit', {
       editList: editList,
     });
   }

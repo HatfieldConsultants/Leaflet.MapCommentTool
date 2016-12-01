@@ -1097,7 +1097,9 @@
           // IF CURRENTLY IN MAP VIEWING MODE
           comment.addTo(map);
         });
-        window.map.MapCommentTool.ControlBar.displayControl('home');
+        if (window.map.MapCommentTool.currentMode == 'controlBarHome') {
+          window.map.MapCommentTool.ControlBar.displayControl('home');
+        }
       });
       socket.on('new comment added', function(msg) {
         console.log("ADD");
@@ -1118,8 +1120,9 @@
         comment.addTo(map);
 
         //IF IN HOME VIEW, RELOAD COMMENT LIST
-        window.map.MapCommentTool.ControlBar.displayControl('home');
-
+        if (window.map.MapCommentTool.currentMode == 'controlBarHome') {
+          window.map.MapCommentTool.ControlBar.displayControl('home');
+        }
       });
 
       socket.on('comment edited', function(msg) {
@@ -1148,21 +1151,27 @@
         map.MapCommentTool.Network.lockedComments = msg.editList;
 
         //IF IN HOME VIEW, RELOAD COMMENT LIST
-        window.map.MapCommentTool.ControlBar.displayControl('home');
-
+        if (window.map.MapCommentTool.currentMode == 'controlBarHome') {
+          window.map.MapCommentTool.ControlBar.displayControl('home');
+        }
       });
 
       socket.on('start edit', function(msg) {
         console.log(msg);
         map.MapCommentTool.Network.lockedComments = msg.editList;
         //IF IN HOME VIEW, RELOAD COMMENT LIST
-        window.map.MapCommentTool.ControlBar.displayControl('home');
+
+        if (window.map.MapCommentTool.currentMode == 'controlBarHome') {
+          window.map.MapCommentTool.ControlBar.displayControl('home');
+        }
       });
 
       socket.on('cancel edit', function(msg) {
         map.MapCommentTool.Network.lockedComments = msg;
         //IF IN HOME VIEW, RELOAD COMMENT LIST
-        window.map.MapCommentTool.ControlBar.displayControl('home');
+        if (window.map.MapCommentTool.currentMode == 'controlBarHome') {
+          window.map.MapCommentTool.ControlBar.displayControl('home');
+        }
       });
 
       document.addEventListener("save-drawing", function(e) {
