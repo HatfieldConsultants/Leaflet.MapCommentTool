@@ -1077,7 +1077,7 @@
 
     init: function() {
       socket.on('load comments', function(msg) {
-
+        console.log(msg);
         map.MapCommentTool.Network.lockedComments = msg.editList;
 
         msg.comments.forEach(function(loadedComment) {

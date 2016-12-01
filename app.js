@@ -2,9 +2,59 @@ var express = require('express');
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+var MongoClient = require('mongodb').MongoClient;
+var assert = require('assert');
 
 var comments = [];
 var beingEdited = [];
+
+// Database functions....
+var url = 'mongodb://localhost:27017/MapCommentToolGlobal';
+// Insert New Comment
+var insertComment = function(db, comment, callback) {
+  db.collection('comments').insertOne(comment, function(err, result) {
+    assert.equal(err, null);
+    console.log("Inserted a new comment into the comment collection.");
+    callback();
+  });
+};
+
+// Get a Comment
+
+// Get all Comments (for load)
+var getComments = function(db, callback) {
+  var commentsArray = [];
+  var cursor = db.collection('comments').find();
+  cursor.each(function(err, doc) {
+    assert.equal(err, null);
+    if (doc != null) {
+      commentsArray.push(doc);
+    } else {
+      callback(commentsArray);
+    }
+  });
+};
+// Update Comment (from edit)
+
+// Delete Comment
+
+// get all beingEdited Comments
+var getBeingEdited = function(db, callback) {
+  var editListArray = [];
+  var cursor = db.collection('beingEdited').find();
+  cursor.each(function(err, doc) {
+    assert.equal(err, null);
+    if (doc != null) {
+      editListArray.push(doc);
+    } else {
+      callback(editListArray);
+    }
+  });
+};
+
+// Add Comment to beingEdited
+
+// Remove Comment from beingEdited
 
 app.use(express.static('public'));
 
@@ -13,21 +63,60 @@ app.get('/', function(req, res) {
 });
 
 io.on('connection', function(socket) {
+  var self = this;
   console.log('a user connected');
+  var comments;
+  var editList;
 
-  socket.emit('load comments', {
-    comments: comments,
-    editList: beingEdited
+  var prepareCommentsForLoad = function(callback) {
+    MongoClient.connect(url, function(err, db) {
+      assert.equal(null, err);
+      getComments(db, function(commentsArray, self) {
+        db.close();
+        comments = commentsArray;
+        callback();
+      });
+    });
+  }
+
+  var prepareEditCommentsForLoad = function(callback, self) {
+    MongoClient.connect(url, function(err, db) {
+      assert.equal(null, err);
+      getBeingEdited(db, function(editListArray, self) {
+        db.close();
+        editList = editListArray;
+        callback();
+      });
+    });
+  }
+
+  var loadSocket = function() {
+    socket.emit('load comments', {
+      comments: comments,
+      editList: editList
+    });
+  }
+
+  prepareCommentsForLoad(function() {
+    prepareEditCommentsForLoad(function() {
+      loadSocket();
+    })
   });
 
   socket.on('disconnect', function() {
     console.log('user disconnected');
   });
   socket.on('new drawing', function(msg) {
-    console.log('message: ' + msg.message);
     var newDrawing = msg.payload;
+
+    MongoClient.connect(url, function(err, db) {
+      assert.equal(null, err);
+      insertComment(db, newDrawing, function() {
+        db.close();
+      });
+    });
+
     comments.push(newDrawing);
-    console.log(JSON.stringify(newDrawing, null, 2));
     socket.broadcast.emit('new comment added', newDrawing);
   });
   socket.on('save drawing', function(msg) {
