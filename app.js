@@ -5,11 +5,12 @@ var io = require('socket.io')(http);
 var MongoClient = require('mongodb').MongoClient;
 var assert = require('assert');
 
-var comments = [];
-var beingEdited = [];
+var comments;
+var editList;
 
 // Database functions....
 var url = 'mongodb://localhost:27017/MapCommentToolGlobal';
+
 // Insert New Comment
 var insertComment = function(db, comment, callback) {
   db.collection('comments').insertOne(comment, function(err, result) {
@@ -53,8 +54,30 @@ var getBeingEdited = function(db, callback) {
 };
 
 // Add Comment to beingEdited
+var insertEditComment = function(db, comment, callback) {
+  db.collection('beingEdited').insertOne(comment, function(err, result) {
+    assert.equal(err, null);
+    console.log("Inserted a new comment into the beingEdited collection.");
+    callback();
+  });
+};
 
 // Remove Comment from beingEdited
+var removeEditComment = function(db, id, callback) {
+  db.collection('beingEdited').deleteMany({
+      "id": id
+    },
+    function(err, results) {
+      callback();
+    }
+  );
+};
+
+/// .......... ///
+
+
+
+// ....... ///
 
 app.use(express.static('public'));
 
@@ -63,10 +86,8 @@ app.get('/', function(req, res) {
 });
 
 io.on('connection', function(socket) {
-  var self = this;
-  console.log('a user connected');
-  var comments;
-  var editList;
+
+  // utility //
 
   var prepareCommentsForLoad = function(callback) {
     MongoClient.connect(url, function(err, db) {
@@ -97,10 +118,17 @@ io.on('connection', function(socket) {
     });
   }
 
+  var loadSocketEdit = function() {
+    socket.broadcast.emit('start edit', {
+      editList: editList,
+    });
+  }
+
+  console.log('a user connected');
   prepareCommentsForLoad(function() {
     prepareEditCommentsForLoad(function() {
       loadSocket();
-    })
+    });
   });
 
   socket.on('disconnect', function() {
@@ -116,9 +144,9 @@ io.on('connection', function(socket) {
       });
     });
 
-    comments.push(newDrawing);
     socket.broadcast.emit('new comment added', newDrawing);
   });
+
   socket.on('save drawing', function(msg) {
     let index = comments.map((el) => el.id).indexOf(msg.payload.id);
     comments[index] = msg.payload;
@@ -130,19 +158,34 @@ io.on('connection', function(socket) {
 
     socket.broadcast.emit('comment edited', msg.payload);
   });
-  socket.on('start edit', function(msg) {
-    // add to beingEdited
-    beingEdited.push(msg.payload.id);
 
-    socket.broadcast.emit('start edit', beingEdited);
+  socket.on('start edit', function(msg) {
+    var editList;
+    // add to beingEdited
+    MongoClient.connect(url, function(err, db) {
+      assert.equal(null, err);
+      insertEditComment(db, msg.payload, function() {
+        db.close();
+      });
+    });
+
+    prepareEditCommentsForLoad(function() {
+      loadSocket();
+    });
   });
+
   socket.on('cancel edit', function(msg) {
-    // remove from beingEdited
-    let index = beingEdited.map((el) => el.id).indexOf(msg.payload.id);
-    beingEdited.splice(index, 1);
+    MongoClient.connect(url, function(err, db) {
+      assert.equal(null, err);
+
+      removeRestaurants(db, msg.payload.id, function() {
+        db.close();
+      });
+    });
 
     socket.broadcast.emit('cancel edit', beingEdited);
   });
+
 });
 
 http.listen(3000, function() {

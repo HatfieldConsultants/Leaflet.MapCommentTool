@@ -1153,7 +1153,8 @@
       });
 
       socket.on('start edit', function(msg) {
-        map.MapCommentTool.Network.lockedComments = msg;
+        console.log(msg);
+        map.MapCommentTool.Network.lockedComments = msg.editList;
         //IF IN HOME VIEW, RELOAD COMMENT LIST
         window.map.MapCommentTool.ControlBar.displayControl('home');
       });
