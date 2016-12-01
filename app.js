@@ -111,14 +111,14 @@ io.on('connection', function(socket) {
     });
   }
 
-  var loadSocket = function() {
+  var loadSocket = function(comments, editList) {
     socket.emit('load comments', {
       comments: comments,
       editList: editList
     });
   }
 
-  var loadSocketEdit = function() {
+  var loadSocketEdit = function(editList) {
     socket.broadcast.emit('start edit', {
       editList: editList,
     });
@@ -127,7 +127,7 @@ io.on('connection', function(socket) {
   console.log('a user connected');
   prepareCommentsForLoad(function() {
     prepareEditCommentsForLoad(function() {
-      loadSocket();
+      loadSocket(comments, editList);
     });
   });
 
@@ -160,7 +160,6 @@ io.on('connection', function(socket) {
   });
 
   socket.on('start edit', function(msg) {
-    var editList;
     // add to beingEdited
     MongoClient.connect(url, function(err, db) {
       assert.equal(null, err);
@@ -170,7 +169,7 @@ io.on('connection', function(socket) {
     });
 
     prepareEditCommentsForLoad(function() {
-      loadSocket();
+      loadSocketEdit(editList);
     });
   });
 
