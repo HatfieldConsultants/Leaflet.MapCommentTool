@@ -1156,19 +1156,10 @@
         }
       });
 
-      socket.on('start edit', function(msg) {
-        console.log(msg);
+      socket.on('editList update', function(msg) {
         map.MapCommentTool.Network.lockedComments = msg.editList;
         //IF IN HOME VIEW, RELOAD COMMENT LIST
 
-        if (window.map.MapCommentTool.currentMode == 'controlBarHome') {
-          window.map.MapCommentTool.ControlBar.displayControl('home');
-        }
-      });
-
-      socket.on('cancel edit', function(msg) {
-        map.MapCommentTool.Network.lockedComments = msg;
-        //IF IN HOME VIEW, RELOAD COMMENT LIST
         if (window.map.MapCommentTool.currentMode == 'controlBarHome') {
           window.map.MapCommentTool.ControlBar.displayControl('home');
         }

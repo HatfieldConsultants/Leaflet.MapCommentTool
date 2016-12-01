@@ -36,6 +36,18 @@ var getComments = function(db, callback) {
   });
 };
 // Update Comment (from edit)
+var updateComment = function(db, id, layers, callback) {
+  db.collection('comments').updateOne({
+      "id": id
+    }, {
+      $set: {
+        "layers": layers
+      }
+    },
+    function(err, results) {
+      callback();
+    });
+};
 
 // Delete Comment
 
@@ -121,7 +133,7 @@ io.on('connection', function(socket) {
   }
 
   var loadSocketEdit = function(editList) {
-    io.emit('start edit', {
+    io.emit('editList update', {
       editList: editList,
     });
   }
@@ -150,15 +162,23 @@ io.on('connection', function(socket) {
   });
 
   socket.on('save drawing', function(msg) {
+
+    // update the comment
     let index = comments.map((el) => el.id).indexOf(msg.payload.id);
     comments[index] = msg.payload;
 
-    let editIndex = beingEdited.map((el) => el.id).indexOf(msg.payload.id);
-    beingEdited.splice(editIndex, 1);
-
-    msg.payload.editList = beingEdited;
-
-    socket.broadcast.emit('comment edited', msg.payload);
+    MongoClient.connect(url, function(err, db) {
+      assert.equal(null, err);
+      updateComment(db, msg.payload.id, msg.payload.layers, function() {
+        removeEditComment(db, msg.payload.id, function() {
+          db.close();
+          prepareEditCommentsForLoad(function() {
+            socket.broadcast.emit('comment edited', msg.payload);
+            loadSocketEdit(editList);
+          });
+        });
+      });
+    });
   });
 
   socket.on('start edit', function(msg) {
@@ -179,7 +199,6 @@ io.on('connection', function(socket) {
       assert.equal(null, err);
 
       removeEditComment(db, msg.payload.id, function() {
-        db.close();
         prepareEditCommentsForLoad(function() {
           loadSocketEdit(editList);
         });
