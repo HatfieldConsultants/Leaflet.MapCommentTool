@@ -1,3 +1,33 @@
+// findIndex polyfill
+if (!Array.prototype.findIndex) {
+  Object.defineProperty(Array.prototype, 'findIndex', {
+    value: function(predicate) {
+      'use strict';
+      if (this === null) {
+        throw new TypeError('Array.prototype.findIndex called on null or undefined');
+      }
+      if (typeof predicate !== 'function') {
+        throw new TypeError('predicate must be a function');
+      }
+      var list = Object(this);
+      var length = list.length >>> 0;
+      var thisArg = arguments[1];
+      var value;
+
+      for (var i = 0; i < length; i++) {
+        value = list[i];
+        if (predicate.call(thisArg, value, i, list)) {
+          return i;
+        }
+      }
+      return -1;
+    },
+    enumerable: false,
+    configurable: false,
+    writable: false
+  });
+}
+
 (function(factory, window) {
 
   // define an AMD module that relies on 'leaflet'
@@ -424,6 +454,7 @@
       if (!comment.saveState) {
         comment.name = prompt("Please name your note", "Note") || "Note";
       }
+      comment.zoomLevel = map.getZoom();
 
       // SAVING LOGIC
       var context = window.map.MapCommentTool.drawingCanvas._ctx;
@@ -567,7 +598,6 @@
       }
 
       window.map.MapCommentTool.stopDrawingMode();
-      comment.zoomLevel = map.getZoom();
 
       comment.saveState = true;
 
@@ -1077,7 +1107,6 @@
 
     init: function() {
       socket.on('load comments', function(msg) {
-
         map.MapCommentTool.Network.lockedComments = msg.editList;
 
         msg.comments.forEach(function(loadedComment) {
@@ -1091,16 +1120,15 @@
           window.map.MapCommentTool.Comments.list.push(comment);
           comment.name = loadedComment.name;
           comment.saveState = true;
-          console.log(loadedComment.zoomLevel);
           comment.zoomLevel = loadedComment.zoomLevel;
-
           // IF CURRENTLY IN MAP VIEWING MODE
           comment.addTo(map);
         });
-        window.map.MapCommentTool.ControlBar.displayControl('home');
+        if (window.map.MapCommentTool.currentMode == 'controlBarHome') {
+          window.map.MapCommentTool.ControlBar.displayControl('home');
+        }
       });
       socket.on('new comment added', function(msg) {
-        console.log("ADD");
         var comment = L.layerGroup();
         comment.id = msg.id;
         var imageUrl = msg.layers[0].src;
@@ -1112,14 +1140,14 @@
         comment.saveState = true;
         comment.name = msg.name;
         comment.zoomLevel = msg.zoomLevel;
-        console.log(msg.zoomLevel);
 
         // IF CURRENTLY IN MAP VIEWING MODE
         comment.addTo(map);
 
         //IF IN HOME VIEW, RELOAD COMMENT LIST
-        window.map.MapCommentTool.ControlBar.displayControl('home');
-
+        if (window.map.MapCommentTool.currentMode == 'controlBarHome') {
+          window.map.MapCommentTool.ControlBar.displayControl('home');
+        }
       });
 
       socket.on('comment edited', function(msg) {
@@ -1131,10 +1159,8 @@
         });
         comment.getLayers().forEach(function(layer) {
           if (layer.layerType == 'drawing') {
-            console.log('REMOVING');
             comment.removeLayer(layer);
             layer.removeFrom(map);
-            console.log('REMOVED');
           }
         });
 
@@ -1145,23 +1171,19 @@
         newImage.layerType = 'drawing';
         comment.zoomLevel = msg.zoomLevel;
 
+        //IF IN HOME VIEW, RELOAD COMMENT LIST
+        if (window.map.MapCommentTool.currentMode == 'controlBarHome') {
+          window.map.MapCommentTool.ControlBar.displayControl('home');
+        }
+      });
+
+      socket.on('editList update', function(msg) {
         map.MapCommentTool.Network.lockedComments = msg.editList;
-
         //IF IN HOME VIEW, RELOAD COMMENT LIST
-        window.map.MapCommentTool.ControlBar.displayControl('home');
 
-      });
-
-      socket.on('start edit', function(msg) {
-        map.MapCommentTool.Network.lockedComments = msg;
-        //IF IN HOME VIEW, RELOAD COMMENT LIST
-        window.map.MapCommentTool.ControlBar.displayControl('home');
-      });
-
-      socket.on('cancel edit', function(msg) {
-        map.MapCommentTool.Network.lockedComments = msg;
-        //IF IN HOME VIEW, RELOAD COMMENT LIST
-        window.map.MapCommentTool.ControlBar.displayControl('home');
+        if (window.map.MapCommentTool.currentMode == 'controlBarHome') {
+          window.map.MapCommentTool.ControlBar.displayControl('home');
+        }
       });
 
       document.addEventListener("save-drawing", function(e) {
