@@ -8,6 +8,16 @@ var assert = require('assert');
 var comments;
 var editList;
 
+// GUID generator
+
+var generateGUID = function() {
+  function s4() {
+    return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+  }
+  return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+};
+
+
 // Database functions....
 var url = 'mongodb://localhost:27017/MapCommentToolGlobal';
 
@@ -93,8 +103,13 @@ var removeEditComment = function(db, id, callback) {
 // ....... ///
 
 app.use(express.static('public'));
+app.use('/map', express.static('public'));
 
 app.get('/', function(req, res) {
+  res.redirect('/map/' + generateGUID());
+});
+
+app.get('/map/:mapId', function(req, res) {
   res.sendFile(__dirname + '/index.html');
 });
 
