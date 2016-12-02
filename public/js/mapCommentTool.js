@@ -454,6 +454,7 @@ if (!Array.prototype.findIndex) {
       if (!comment.saveState) {
         comment.name = prompt("Please name your note", "Note") || "Note";
       }
+      comment.zoomLevel = map.getZoom();
 
       // SAVING LOGIC
       var context = window.map.MapCommentTool.drawingCanvas._ctx;
@@ -597,7 +598,6 @@ if (!Array.prototype.findIndex) {
       }
 
       window.map.MapCommentTool.stopDrawingMode();
-      comment.zoomLevel = map.getZoom();
 
       comment.saveState = true;
 
@@ -1107,7 +1107,6 @@ if (!Array.prototype.findIndex) {
 
     init: function() {
       socket.on('load comments', function(msg) {
-        console.log(msg);
         map.MapCommentTool.Network.lockedComments = msg.editList;
 
         msg.comments.forEach(function(loadedComment) {
@@ -1121,9 +1120,7 @@ if (!Array.prototype.findIndex) {
           window.map.MapCommentTool.Comments.list.push(comment);
           comment.name = loadedComment.name;
           comment.saveState = true;
-          console.log(loadedComment.zoomLevel);
           comment.zoomLevel = loadedComment.zoomLevel;
-
           // IF CURRENTLY IN MAP VIEWING MODE
           comment.addTo(map);
         });
@@ -1132,7 +1129,6 @@ if (!Array.prototype.findIndex) {
         }
       });
       socket.on('new comment added', function(msg) {
-        console.log("ADD");
         var comment = L.layerGroup();
         comment.id = msg.id;
         var imageUrl = msg.layers[0].src;
@@ -1144,7 +1140,6 @@ if (!Array.prototype.findIndex) {
         comment.saveState = true;
         comment.name = msg.name;
         comment.zoomLevel = msg.zoomLevel;
-        console.log(msg.zoomLevel);
 
         // IF CURRENTLY IN MAP VIEWING MODE
         comment.addTo(map);
@@ -1164,10 +1159,8 @@ if (!Array.prototype.findIndex) {
         });
         comment.getLayers().forEach(function(layer) {
           if (layer.layerType == 'drawing') {
-            console.log('REMOVING');
             comment.removeLayer(layer);
             layer.removeFrom(map);
-            console.log('REMOVED');
           }
         });
 

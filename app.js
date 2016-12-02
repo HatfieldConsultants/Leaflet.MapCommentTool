@@ -36,12 +36,13 @@ var getComments = function(db, callback) {
   });
 };
 // Update Comment (from edit)
-var updateComment = function(db, id, layers, callback) {
+var updateComment = function(db, id, layers, zoomLevel, callback) {
   db.collection('comments').updateOne({
       "id": id
     }, {
       $set: {
-        "layers": layers
+        "layers": layers,
+        "zoomLevel": zoomLevel,
       }
     },
     function(err, results) {
@@ -169,7 +170,7 @@ io.on('connection', function(socket) {
 
     MongoClient.connect(url, function(err, db) {
       assert.equal(null, err);
-      updateComment(db, msg.payload.id, msg.payload.layers, function() {
+      updateComment(db, msg.payload.id, msg.payload.layers, msg.payload.zoomLevel, function() {
         removeEditComment(db, msg.payload.id, function() {
           db.close();
           prepareEditCommentsForLoad(function() {
